@@ -7,11 +7,6 @@ const inter = Inter({
   subsets: ["latin"],
 });
 
-const ptSerif = PT_Serif({
-  variable: "--font-pt-serif",
-  subsets: ["latin"],
-  weight: ["400", "700"],
-});
 
 export const metadata = {
   title: "Create Next App",
@@ -22,7 +17,7 @@ export default function RootLayout({ children }) {
   return (
     <html lang="en">
       <body
-        className={`${inter.variable} ${ptSerif.variable} antialiased`}
+        className={`${inter.variable} antialiased`}
       >
         {children}
       </body>
