@@ -7,7 +7,7 @@ export default function LeftUtils() {
 		<div className="flex space-x-[17px]">
 			<CircleButton
 				className={
-					'flex items-center justify-center bg-[#34A853] text-3xl font-bold'
+					'flex items-center justify-center bg-[#C27AFF] text-3xl font-bold hover:bg-[#b16ce6] transition-colors duration-300 ease-in-out'
 				}
 			>
 				<Image src="/image/file.svg" alt="plus" width={24} height={24} />
@@ -15,7 +15,7 @@ export default function LeftUtils() {
 
 			<CircleButton
 				className={
-					'flex items-center justify-center bg-[#Ffa600] text-[24px] font-bold'
+					'flex items-center justify-center bg-[#7C86FF] text-[24px] font-bold hover:bg-[#6b7aff] transition-colors duration-300 ease-in-out'
 				}
 			>
 				<select
