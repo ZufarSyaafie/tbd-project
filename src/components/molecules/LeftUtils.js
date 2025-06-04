@@ -8,13 +8,12 @@ export default function LeftUtils() {
 				className={
 					'flex items-center justify-center bg-[#34A853] text-3xl font-bold'
 				}
-			>
-				+
-			</CircleButton>
+				content="+"
+			/>
 
 			<CircleButton
 				className={
-					'flex items-center justify-center bg-[#Ffa600] text-[32px] font-bold'
+					'flex items-center justify-center bg-[#Ffa600] text-[24px] font-bold'
 				}
 			>
 				<select
@@ -28,13 +27,13 @@ export default function LeftUtils() {
 					}}
 					className={'focus:outline-none'}
 				>
-					<option value="25" className={'text-xl text-slate-800'}>
+					<option value="25" className={'text-[18px] text-slate-800'}>
 						25
 					</option>
-					<option value="50" className={'text-xl text-slate-800'}>
+					<option value="50" className={'text-[18px] text-slate-800'}>
 						50
 					</option>
-					<option value="100" className={'text-xl text-slate-800'}>
+					<option value="100" className={'text-[18px] text-slate-800'}>
 						100
 					</option>
 				</select>
