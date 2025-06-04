@@ -2,7 +2,7 @@ import React from "react";
 import Image from "next/image";
 export default function Navbar() {
     return (
-        <nav className="px-10 py-3 bg-[#10141E] shadow-md w-full fixed top-0 z-50">
+        <nav className="px-10 py-3 bg-[#10141E] shadow-md w-full sticky top-0 z-50">
             <div  className="flex items-center justify-between"> 
                 <div  className="flex items-center">
                     <a href="/">
