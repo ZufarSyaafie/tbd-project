@@ -4,9 +4,9 @@ import React from "react";
 
 export default function NavigateUtils() {
 	return (
-		<div className="flex items-center flex-row gap-[5px]">
+		<div className="flex items-center flex-row gap-[10px]">
             <ArrowButton direction="left" />
-            <PageInfo currentPage={1} totalPages={5} />
+            <PageInfo currentPage={1} />
             <ArrowButton direction="right" />
 		</div>
 	);

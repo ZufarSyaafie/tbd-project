@@ -1,5 +1,6 @@
 import CircleButton from '../atoms/CircleButton';
 import React from 'react';
+import Image from 'next/image';
 
 export default function LeftUtils() {
 	return (
@@ -8,8 +9,9 @@ export default function LeftUtils() {
 				className={
 					'flex items-center justify-center bg-[#34A853] text-3xl font-bold'
 				}
-				content="+"
-			/>
+			>
+				<Image src="/image/file.svg" alt="plus" width={24} height={24} />
+			</CircleButton>
 
 			<CircleButton
 				className={
