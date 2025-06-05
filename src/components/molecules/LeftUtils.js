@@ -1,8 +1,10 @@
+'use client';
 import CircleButton from '../atoms/CircleButton';
 import React from 'react';
 import Image from 'next/image';
+import { RotateCcw } from 'lucide-react';
 
-export default function LeftUtils({ onAddClick }) {
+export default function LeftUtils({ onAddClick, onRefresh, isRefreshing }) {
 	return (
 		<div className="flex flex-row justify-center gap-6">
 			<CircleButton
@@ -49,6 +51,18 @@ export default function LeftUtils({ onAddClick }) {
 						100
 					</option>
 				</select>
+			</CircleButton>
+
+			<CircleButton
+				className={
+					'flex cursor-pointer items-center justify-center bg-[#00BCFF] text-3xl font-bold transition-colors duration-300 ease-in-out hover:bg-blue-600'
+				}
+				onClick={onRefresh}
+			>
+				<RotateCcw 
+					size={24} 
+					className={`text-white ${isRefreshing ? 'animate-spin' : ''}`} 
+				/>
 			</CircleButton>
 		</div>
 	);
