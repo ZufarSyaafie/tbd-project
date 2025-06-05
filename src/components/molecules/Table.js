@@ -3,18 +3,41 @@ import React, { useState, useEffect } from 'react';
 import RowUtils from '../molecules/RowUtils'; // Pastikan path ini sesuai dengan struktur folder Anda
 import { supabase } from '@/lib/supabase'; // Sesuaikan dengan path supabase client Anda
 
-export default function Table({ onRefresh }) {
+export default function Table({ 
+  onRefresh, 
+  itemsPerPage = 25, 
+  currentPage = 1, 
+  onPageChange,
+  onTotalPagesChange,
+  onTotalItemsChange 
+}) {
 	const [books, setBooks] = useState([]);
 	const [loading, setLoading] = useState(true);
-	const [error, setError] = useState(null);
+  const [error, setError] = useState(null);
+  const [totalBooks, setTotalBooks] = useState(0);
 
 	// Fungsi untuk mengambil data dari Supabase
-	const fetchBooks = async () => {
-		try {
-			setLoading(true);
-
-			// Query ke Supabase dengan relasi
-			const { data, error } = await supabase.from('Buku').select(`
+  const fetchBooks = async (page = currentPage, limit = itemsPerPage) => {
+    try {
+      setLoading(true);
+      
+      // Hitung offset untuk pagination
+      const offset = (page - 1) * limit;
+  
+      // Query untuk mendapatkan total count
+      const { count, error: countError } = await supabase
+        .from('Buku')
+        .select('*', { count: 'exact', head: true });
+  
+      if (countError) {
+        console.error('Count error:', countError);
+        throw countError;
+      }
+  
+      // Query untuk mendapatkan data dengan pagination
+      const { data, error } = await supabase
+        .from('Buku')
+        .select(`
           id,
           judul,
           genre,
@@ -31,46 +54,62 @@ export default function Table({ onRefresh }) {
               nama_penulis
             )
           )
-        `);
+        `)
+        .range(offset, offset + limit - 1)
+        .order('id', { ascending: true });
+  
+      if (error) {
+        console.error('Supabase error:', error);
+        throw error;
+      }
+  
+      console.log('Raw data from Supabase:', data);
+  
+      // Transform data untuk menyesuaikan dengan struktur yang diharapkan
+      const transformedData = data?.map(book => {
+        console.log('Processing book:', book);
+        return {
+          ...book,
+          penerbit: book.Penerbit?.nama_penerbit || 'Tidak ada penerbit',
+          penulis: book.Buku_Penulis?.map(bp => bp.Penulis) || []
+        };
+      }) || [];
+  
+      console.log('Transformed data:', transformedData);
+      
+      setBooks(transformedData);
+      setTotalBooks(count || 0);
+      
+      // Update parent component dengan total items dan pages
+      if (onTotalItemsChange) {
+        onTotalItemsChange(count || 0);
+      }
+      
+      const totalPages = Math.ceil((count || 0) / limit);
+      if (onTotalPagesChange) {
+        onTotalPagesChange(totalPages);
+      }
+      
+      setLoading(false);
+  
+    } catch (err) {
+      console.error('Error fetching books:', err);
+      setError(err.message);
+      setLoading(false);
+    }
+  };
 
-			if (error) {
-				console.error('Supabase error:', error);
-				throw error;
-			}
-
-			console.log('Raw data from Supabase:', data); // Debug log
-
-			// Transform data untuk menyesuaikan dengan struktur yang diharapkan
-			const transformedData =
-				data?.map((book) => {
-					console.log('Processing book:', book); // Debug log
-					return {
-						...book,
-						penerbit: book.Penerbit?.nama_penerbit || 'Tidak ada penerbit',
-						penulis: book.Buku_Penulis?.map((bp) => bp.Penulis) || [],
-					};
-				}) || [];
-
-			console.log('Transformed data:', transformedData); // Debug log
-			setBooks(transformedData);
-			setLoading(false);
-		} catch (err) {
-			console.error('Error fetching books:', err);
-			setError(err.message);
-			setLoading(false);
-		}
-	};
-
-	useEffect(() => {
-		fetchBooks();
-	}, []);
+  useEffect(() => {
+    fetchBooks(currentPage, itemsPerPage);
+  }, [currentPage, itemsPerPage]);
+  
 
 	// Expose fetchBooks function through onRefresh callback
-	useEffect(() => {
-		if (onRefresh) {
-			onRefresh(fetchBooks);
-		}
-	}, [onRefresh]);
+  useEffect(() => {
+    if (onRefresh) {
+      onRefresh(() => fetchBooks(currentPage, itemsPerPage));
+    }
+  }, [onRefresh, currentPage, itemsPerPage]);
 
 	// Handler untuk aksi pada baris
 	const handleView = (bookId) => {
@@ -92,7 +131,7 @@ export default function Table({ onRefresh }) {
 				if (error) throw error;
 
 				// Refresh data setelah delete
-				fetchBooks();
+				fetchBooks(currentPage, itemsPerPage);
 				alert('Buku berhasil dihapus!');
 			} catch (err) {
 				alert('Gagal menghapus buku: ' + err.message);
@@ -144,7 +183,7 @@ export default function Table({ onRefresh }) {
 	}
 
 	return (
-		<div className="max-h-100 w-full overflow-scroll overflow-x-hidden rounded-md shadow-lg">
+		<div className="w-full">
 			<table className="w-full overflow-hidden rounded-md text-black shadow-lg">
 				<thead className="bg-[#00BCFF] font-semibold text-white">
 					<tr>
@@ -183,7 +222,7 @@ export default function Table({ onRefresh }) {
 						))
 					)}
 				</tbody>
-			</table>
-		</div>
+        </table>
+    </div>
 	);
 }
