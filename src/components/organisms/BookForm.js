@@ -1,10 +1,11 @@
 'use client';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Plus, X } from 'lucide-react';
 import { yearOptions, genreOptions } from '@/lib/options';
 import AuthorField from '../molecules/AuthorField';
+import { supabase } from '@/lib/supabase'; // Sesuaikan dengan path supabase client Anda
 
-export default function CompleteBookForm({ onClose }) {
+export default function CompleteBookForm({ onClose, onBookAdded }) {
 	const [formData, setFormData] = useState({
 		title: '',
 		genre: '',
@@ -15,20 +16,123 @@ export default function CompleteBookForm({ onClose }) {
 	});
 
 	const [authors, setAuthors] = useState(['']);
-	const [existingAuthors] = useState([
-		'Ahmad Tohari',
-		'Pramoedya Ananta Toer',
-		'Andrea Hirata',
-		'Tere Liye',
-		'Dee Lestari',
-	]);
-	const [existingPublishers] = useState([
-		'Gramedia Pustaka Utama',
-		'Mizan',
-		'Bentang Pustaka',
-		'Republika',
-		'Erlangga',
-	]);
+	const [existingAuthors, setExistingAuthors] = useState([]);
+	const [existingPublishers, setExistingPublishers] = useState([]);
+	const [isLoading, setIsLoading] = useState(false);
+	const [error, setError] = useState('');
+
+	// Fetch existing authors and publishers from Supabase
+	useEffect(() => {
+		fetchExistingData();
+	}, []);
+
+	const fetchExistingData = async () => {
+		try {
+			// Fetch authors
+			const { data: authorsData, error: authorsError } = await supabase
+				.from('Penulis')
+				.select('nama_penulis')
+				.order('nama_penulis');
+
+			if (authorsError) throw authorsError;
+
+			// Fetch publishers
+			const { data: publishersData, error: publishersError } = await supabase
+				.from('Penerbit')
+				.select('nama_penerbit')
+				.order('nama_penerbit');
+
+			if (publishersError) throw publishersError;
+
+			setExistingAuthors(authorsData.map((author) => author.nama_penulis));
+			setExistingPublishers(
+				publishersData.map((publisher) => publisher.nama_penerbit)
+			);
+		} catch (error) {
+			console.error('Error fetching existing data:', error);
+			setError('Gagal memuat data penulis dan penerbit');
+		}
+	};
+
+	// Function to convert year to date (January 1st of that year)
+	const convertYearToDate = (year) => {
+		if (!year) return null;
+		// Create date string in YYYY-MM-DD format for January 1st
+		return `${year}-01-01`;
+	};
+
+	// Function to get or create publisher
+	const getOrCreatePublisher = async (publisherName) => {
+		try {
+			// Check if publisher exists
+			const { data: existingPublisher, error: fetchError } = await supabase
+				.from('Penerbit')
+				.select('id')
+				.eq('nama_penerbit', publisherName)
+				.single();
+
+			if (fetchError && fetchError.code !== 'PGRST116') {
+				throw fetchError;
+			}
+
+			if (existingPublisher) {
+				return existingPublisher.id;
+			}
+
+			// Create new publisher
+			const { data: newPublisher, error: createError } = await supabase
+				.from('Penerbit')
+				.insert([{ nama_penerbit: publisherName }])
+				.select('id')
+				.single();
+
+			if (createError) throw createError;
+
+			return newPublisher.id;
+		} catch (error) {
+			console.error('Error with publisher:', error);
+			throw error;
+		}
+	};
+
+	// Function to get or create authors
+	const getOrCreateAuthors = async (authorNames) => {
+		try {
+			const authorIds = [];
+
+			for (const authorName of authorNames) {
+				// Check if author exists
+				const { data: existingAuthor, error: fetchError } = await supabase
+					.from('Penulis')
+					.select('id')
+					.eq('nama_penulis', authorName)
+					.single();
+
+				if (fetchError && fetchError.code !== 'PGRST116') {
+					throw fetchError;
+				}
+
+				if (existingAuthor) {
+					authorIds.push(existingAuthor.id);
+				} else {
+					// Create new author
+					const { data: newAuthor, error: createError } = await supabase
+						.from('Penulis')
+						.insert([{ nama_penulis: authorName }])
+						.select('id')
+						.single();
+
+					if (createError) throw createError;
+					authorIds.push(newAuthor.id);
+				}
+			}
+
+			return authorIds;
+		} catch (error) {
+			console.error('Error with authors:', error);
+			throw error;
+		}
+	};
 
 	const handleInputChange = (field, value) => {
 		setFormData((prev) => ({
@@ -37,7 +141,7 @@ export default function CompleteBookForm({ onClose }) {
 		}));
 	};
 
-	const handleSubmit = () => {
+	const handleSubmit = async () => {
 		if (
 			!formData.title ||
 			!formData.genre ||
@@ -50,28 +154,83 @@ export default function CompleteBookForm({ onClose }) {
 			return;
 		}
 
-		const data = {
-			...formData,
-			authors: authors.filter((a) => a.trim() !== ''),
-		};
+		setIsLoading(true);
+		setError('');
 
-		console.log('Data buku:', data);
-		alert('Buku berhasil disimpan!');
+		try {
+			const filteredAuthors = authors.filter((a) => a.trim() !== '');
 
-		// Reset form
-		setFormData({
-			title: '',
-			genre: '',
-			year: '',
-			pages: '',
-			publisher: '',
-			description: '',
-		});
-		setAuthors(['']);
-		
-		// Close modal after successful save
-		if (onClose) {
-			onClose();
+			// Get or create publisher
+			const publisherId = await getOrCreatePublisher(formData.publisher);
+
+			// Get or create authors
+			const authorIds = await getOrCreateAuthors(filteredAuthors);
+
+			// Convert year to date format
+			const publishDate = convertYearToDate(formData.year);
+
+			// Create book record
+			const { data: bookData, error: bookError } = await supabase
+				.from('Buku')
+				.insert([
+					{
+						judul: formData.title,
+						genre: formData.genre,
+						tahun_terbit: publishDate, // Now sending as date instead of integer
+						jumlah_halaman: parseInt(formData.pages),
+						deskripsi: formData.description || null,
+						penerbit_id: publisherId,
+					},
+				])
+				.select('id')
+				.single();
+
+			if (bookError) throw bookError;
+
+			// Create book-author relationships (assuming you have a junction table)
+			// Sesuaikan nama tabel dan kolom dengan struktur database Anda
+			const bookAuthorRelations = authorIds.map((authorId) => ({
+				buku_id: bookData.id,
+				penulis_id: authorId,
+			}));
+
+			const { error: relationError } = await supabase
+				.from('Buku_Penulis') // Sesuaikan nama tabel junction
+				.insert(bookAuthorRelations);
+
+			if (relationError) throw relationError;
+
+			alert('Buku berhasil disimpan!');
+
+			// Reset form
+			setFormData({
+				title: '',
+				genre: '',
+				year: '',
+				pages: '',
+				publisher: '',
+				description: '',
+			});
+			setAuthors(['']);
+
+			// Refresh existing data
+			await fetchExistingData();
+
+			// Callback to parent component
+			if (onBookAdded) {
+				onBookAdded();
+			}
+
+			// Close modal after successful save
+			if (onClose) {
+				onClose();
+			}
+		} catch (error) {
+			console.error('Error saving book:', error);
+			setError('Gagal menyimpan buku. Silakan coba lagi.');
+			alert('Gagal menyimpan buku: ' + error.message);
+		} finally {
+			setIsLoading(false);
 		}
 	};
 
@@ -101,6 +260,9 @@ export default function CompleteBookForm({ onClose }) {
 				</button>
 			</div>
 
+			{/* Error Message */}
+			{error && <div className="bg-red-600 px-6 py-2 text-white">{error}</div>}
+
 			{/* Form */}
 			<div className="space-y-4 p-6 text-white">
 				<div>
@@ -113,6 +275,7 @@ export default function CompleteBookForm({ onClose }) {
 						onChange={(e) => handleInputChange('title', e.target.value)}
 						className="w-full rounded border-0 bg-slate-700 p-3 text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-[#C27AFF]"
 						placeholder="Masukkan judul buku"
+						disabled={isLoading}
 					/>
 				</div>
 
@@ -125,6 +288,7 @@ export default function CompleteBookForm({ onClose }) {
 							value={formData.genre}
 							onChange={(e) => handleInputChange('genre', e.target.value)}
 							className="w-full rounded border-0 bg-slate-700 p-3 text-white focus:outline-none focus:ring-2 focus:ring-[#C27AFF]"
+							disabled={isLoading}
 						>
 							<option value="">Pilih Genre</option>
 							{genreOptions.map((g) => (
@@ -143,6 +307,7 @@ export default function CompleteBookForm({ onClose }) {
 							value={formData.year}
 							onChange={(e) => handleInputChange('year', e.target.value)}
 							className="w-full rounded border-0 bg-slate-700 p-3 text-white focus:outline-none focus:ring-2 focus:ring-[#C27AFF]"
+							disabled={isLoading}
 						>
 							<option value="">Pilih Tahun</option>
 							{yearOptions.map((y) => (
@@ -164,6 +329,7 @@ export default function CompleteBookForm({ onClose }) {
 							onChange={(e) => handleInputChange('pages', e.target.value)}
 							className="w-full rounded border-0 bg-slate-700 p-3 text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-[#C27AFF]"
 							placeholder="Jumlah"
+							disabled={isLoading}
 						/>
 					</div>
 				</div>
@@ -172,6 +338,7 @@ export default function CompleteBookForm({ onClose }) {
 					authors={authors}
 					setAuthors={setAuthors}
 					existingAuthors={existingAuthors}
+					disabled={isLoading}
 				/>
 
 				<div>
@@ -185,6 +352,7 @@ export default function CompleteBookForm({ onClose }) {
 						onChange={(e) => handleInputChange('publisher', e.target.value)}
 						className="w-full rounded border-0 bg-slate-700 p-3 text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-[#C27AFF]"
 						placeholder="Nama penerbit"
+						disabled={isLoading}
 					/>
 					<datalist id="publisher-options">
 						{existingPublishers.map((publisher) => (
@@ -203,14 +371,16 @@ export default function CompleteBookForm({ onClose }) {
 						className="w-full resize-none rounded border-0 bg-slate-700 p-3 text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-[#C27AFF]"
 						rows={4}
 						placeholder="Deskripsi singkat tentang buku..."
+						disabled={isLoading}
 					/>
 				</div>
 
 				<button
 					onClick={handleSubmit}
-					className="w-full transform rounded bg-[#C27AFF] p-3 font-bold text-white transition-colors duration-200 hover:scale-105 hover:bg-purple-600 hover:cursor-pointer"
+					disabled={isLoading}
+					className="w-full transform rounded bg-[#C27AFF] p-3 font-bold text-white transition-colors duration-200 hover:scale-105 hover:cursor-pointer hover:bg-purple-600 disabled:cursor-not-allowed disabled:opacity-50 disabled:hover:scale-100"
 				>
-					SIMPAN
+					{isLoading ? 'MENYIMPAN...' : 'SIMPAN'}
 				</button>
 			</div>
 		</div>

@@ -9,7 +9,7 @@ export default function LeftUtils({ onAddClick }) {
 				className={
 					'flex cursor-pointer items-center justify-center bg-[#C27AFF] text-3xl font-bold transition-colors duration-300 ease-in-out hover:bg-purple-600'
 				}
-				onClick={onAddClick} 
+				onClick={onAddClick}
 			>
 				<Image src="/image/file.svg" alt="plus" width={24} height={24} />
 			</CircleButton>
