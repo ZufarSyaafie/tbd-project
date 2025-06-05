@@ -1,19 +1,23 @@
-import React from "react";
-import { PT_Serif } from "next/font/google";
+import React from 'react';
+import { PT_Serif } from 'next/font/google';
 
 const ptSerif = PT_Serif({
-    // variable: "--font-pt-serif",
-    subsets: ["latin"],
-    weight: "700",
-    style: "italic"
+	// variable: "--font-pt-serif",
+	subsets: ['latin'],
+	weight: '700',
+	style: 'italic',
 });
 
 export default function Hero() {
-    return (
-        <div className="flex flex-col items-center justify-center text-center bg-[url('/image/hero.png')] bg-cover bg-bottom w-screen h-[75vh] bg-no-repeat">
-            <h1 className={`text-[#ffffff]  ${ptSerif.className} leading-normal text-7xl`}>
-                "Membaca Buku,<br/>Menjalajahi Dunia"
-            </h1>
-        </div>
-    );
+	return (
+		<div className="flex h-[75vh] w-screen flex-col items-center justify-center bg-[url('/image/hero.png')] bg-cover bg-bottom bg-no-repeat text-center">
+			<h1
+				className={`text-[#ffffff]  ${ptSerif.className} text-7xl leading-normal`}
+			>
+				"Membaca Buku,
+				<br />
+				Menjalajahi Dunia"
+			</h1>
+		</div>
+	);
 }
