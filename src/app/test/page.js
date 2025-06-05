@@ -1,16 +1,9 @@
-import Navbar from '@/components/organisms/Navbar';
-import Hero from '@/components/organisms/Hero';
-import Main from '@/components/organisms/Main';
-import React from 'react';
+import BookForm from '@/components/organisms/BookForm';
 
-export default function Page() {
+export default function TambahBukuPage() {
 	return (
-		<div className="flex flex-col items-center overflow-hidden">
-			<Navbar />
-			<Hero />
-			<Main>
-				<div className="h-[100vh]"></div>
-			</Main>
-		</div>
+		<main className="flex min-h-screen items-center justify-center bg-black text-white">
+			<BookForm />
+		</main>
 	);
 }
