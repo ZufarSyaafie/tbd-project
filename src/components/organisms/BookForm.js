@@ -95,7 +95,7 @@ export default function CompleteBookForm({ onClose }) {
 				<button
 					type="button"
 					onClick={handleClose}
-					className="text-2xl font-bold text-white transition-colors hover:text-gray-200"
+					className="text-2xl font-bold text-white transition-colors hover:scale-110 hover:cursor-pointer"
 				>
 					<X size={25} strokeWidth={4} />
 				</button>
@@ -208,7 +208,7 @@ export default function CompleteBookForm({ onClose }) {
 
 				<button
 					onClick={handleSubmit}
-					className="w-full transform rounded bg-[#C27AFF] p-3 font-bold text-white transition-colors duration-200 hover:scale-105 hover:bg-purple-600"
+					className="w-full transform rounded bg-[#C27AFF] p-3 font-bold text-white transition-colors duration-200 hover:scale-105 hover:bg-purple-600 hover:cursor-pointer"
 				>
 					SIMPAN
 				</button>
