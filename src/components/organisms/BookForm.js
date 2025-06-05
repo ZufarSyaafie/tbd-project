@@ -4,7 +4,7 @@ import { Plus, X } from 'lucide-react';
 import { yearOptions, genreOptions } from '@/lib/options';
 import AuthorField from '../molecules/AuthorField';
 
-export default function CompleteBookForm() {
+export default function CompleteBookForm({ onClose }) {
 	const [formData, setFormData] = useState({
 		title: '',
 		genre: '',
@@ -68,6 +68,11 @@ export default function CompleteBookForm() {
 			description: '',
 		});
 		setAuthors(['']);
+		
+		// Close modal after successful save
+		if (onClose) {
+			onClose();
+		}
 	};
 
 	const handleClose = () => {
@@ -76,7 +81,9 @@ export default function CompleteBookForm() {
 				'Apakah Anda yakin ingin menutup form? Data yang belum disimpan akan hilang.'
 			)
 		) {
-			console.log('Form ditutup');
+			if (onClose) {
+				onClose();
+			}
 		}
 	};
 
