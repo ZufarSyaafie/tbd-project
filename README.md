@@ -20,6 +20,28 @@ You can start editing the page by modifying `app/page.js`. The page auto-updates
 
 This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
 
+## Commit Message 
+Write your commit message in the following format :
+```
+<type>(<scope>): <short description>
+```
+example: `feat(navbar): add navbar desktop`
+
+   ### Commit Types 
+
+   - `ci`: Changes to our CI configuration files and scripts
+   - `chore`: Changes to the build process or auxiliary tools and libraries such as documentation
+     generation
+   - `docs`: Documentation only changes
+   - `ticket`: Changes that are related to a ticket
+   - `feat`: A new feature
+   - `fix`: A bug fix
+   - `perf`: A code change that improves performance
+   - `refactor`: A code change that neither fixes a bug nor adds a feature
+   - `revert`: Reverts a previous commit
+   - `style`: Changes that do not affect the meaning of the code (white-space, formatting, missing
+     semi-colons, etc)
+
 ## Learn More
 
 To learn more about Next.js, take a look at the following resources:
