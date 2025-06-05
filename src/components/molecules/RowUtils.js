@@ -14,14 +14,14 @@ export default function RowUtils() {
 			</RectButton>
 			<RectButton
 				className={
-					'bg-[#C27AFF] text-xl font-bold text-white transition-colors duration-300 ease-in-out hover:cursor-pointer hover:bg-[#b16ce6]'
+					'bg-[#C27AFF] text-xl font-bold text-white transition-colors duration-300 ease-in-out hover:cursor-pointer hover:bg-purple-600'
 				}
 			>
 				<Image src="/image/edit.svg" alt="Edit" width={12} height={12} />
 			</RectButton>
 			<RectButton
 				className={
-					'bg-[#FB64B6] text-xl font-bold text-white transition-colors duration-300 ease-in-out hover:cursor-pointer hover:bg-[#f05a8c]'
+					'bg-[#FB64B6] text-xl font-bold text-white transition-colors duration-300 ease-in-out hover:cursor-pointer hover:bg-[#FF008A]'
 				}
 			>
 				<Image src="/image/trash.svg" alt="Trash" width={12} height={12} />
