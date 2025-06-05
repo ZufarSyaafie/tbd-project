@@ -32,9 +32,9 @@ export default function Footer() {
         {/* About/Contact/Support */}
         <div className="font-extrabold row-span-2">
           <ul className="list-none space-y-2">
-            <li>ABOUT US</li>
-            <li>CONTACT US</li>
-            <li>SUPPORT</li>
+            <li><a href="#" className="hover:text-[#00BCFF] transition-colors duration-300 whitespace-nowrap">ABOUT US</a></li>
+            <li><a href="#" className="hover:text-[#00BCFF] transition-colors duration-300 whitespace-nowrap">CONTACT US</a></li>
+            <li><a href="#" className="hover:text-[#00BCFF] transition-colors duration-300 whitespace-nowrap">SUPPORT</a></li>
           </ul>
         </div>
 
@@ -44,27 +44,27 @@ export default function Footer() {
           <ul className="flex flex-wrap gap-3 list-none mt-4">
             <li>
               <a href="#">
-                <img src="/image/wa.svg" alt="WhatsApp" className="w-8 h-8" />
+                <img src="/image/wa.svg" alt="WhatsApp" className="w-8 h-8 hover:scale-110 transition-transform duration-300" />
               </a>
             </li>
             <li>
               <a href="#">
-                <img src="/image/ig.svg" alt="Instagram" className="w-8 h-8" />
+                <img src="/image/ig.svg" alt="Instagram" className="w-8 h-8 hover:scale-110 transition-transform duration-300" />
               </a>
             </li>
             <li>
               <a href="#">
-                <img src="/image/x.svg" alt="X" className="w-8 h-8" />
+                <img src="/image/x.svg" alt="X" className="w-8 h-8 hover:scale-110 transition-transform duration-300" />
               </a>
             </li>
             <li>
               <a href="#">
-                <img src="/image/fb.svg" alt="Facebook" className="w-8 h-8" />
+                <img src="/image/fb.svg" alt="Facebook" className="w-8 h-8 hover:scale-110 transition-transform duration-300" />
               </a>
             </li>
             <li>
               <a href="#">
-                <img src="/image/linkedin.svg" alt="LinkedIn" className="w-8 h-8" />
+                <img src="/image/linkedin.svg" alt="LinkedIn" className="w-8 h-8 hover:scale-110 transition-transform duration-300" />
               </a>
             </li>
           </ul>
