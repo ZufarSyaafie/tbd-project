@@ -1,14 +1,13 @@
-import NavigateUtils from '@/components/molecules/NavigateUtils';
-import LeftUtils from '@/components/molecules/LeftUtils';
-import RowUtils from '@/components/molecules/RowUtils';
+import Navbar from '@/components/organisms/Navbar';
+import Hero from '@/components/organisms/Hero';
 import React from 'react';
 
 export default function Page() {
 	return (
-		<div className="flex items-center flex-row gap-[10px] p-4">
-			<NavigateUtils />
-			<LeftUtils />
-			<RowUtils />
+		<div className="flex items-center flex-col">
+			<Navbar />
+			<Hero />
+			<div className='h-[1000px]'></div>
 		</div>
 	);
 }
