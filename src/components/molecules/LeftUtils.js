@@ -4,7 +4,7 @@ import Image from 'next/image';
 
 export default function LeftUtils() {
 	return (
-		<div className="flex space-x-[17px]">
+		<div className="flex flex-row justify-center space-x-6">
 			<CircleButton
 				className={
 					'flex items-center justify-center bg-[#C27AFF] text-3xl font-bold hover:bg-[#b16ce6] transition-colors duration-300 ease-in-out'
@@ -29,13 +29,13 @@ export default function LeftUtils() {
 					}}
 					className={'focus:outline-none'}
 				>
-					<option value="25" className={'text-[18px] text-slate-800'}>
+					<option value="25" className={'text-xl text-slate-800'}>
 						25
 					</option>
-					<option value="50" className={'text-[18px] text-slate-800'}>
+					<option value="50" className={'text-xl text-slate-800'}>
 						50
 					</option>
-					<option value="100" className={'text-[18px] text-slate-800'}>
+					<option value="100" className={'text-xl text-slate-800'}>
 						100
 					</option>
 				</select>
