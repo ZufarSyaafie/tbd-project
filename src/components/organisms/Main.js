@@ -91,7 +91,7 @@ export default function Main({ children }) {
 
     return (
         <>
-            <div className="container my-14 rounded-2xl bg-white flex-col pt-9 pb-6 px-9 justify-between space-y-8 dark:bg-[#1E2939]">
+            <div className="container my-14 rounded-2xl bg-[#1E2939] flex-col pt-9 pb-6 px-9 justify-between space-y-8">
                 <div className="flex flex-row justify-between items-ends">
                     <div>
                     <LeftUtils 
@@ -146,7 +146,7 @@ export default function Main({ children }) {
 
             {/* Add Book Modal */}
             {isModalOpen && (
-                <div className="fixed inset-0 bg-gray-900/50 backdrop-blur-sm flex items-center justify-center z-50 dark:bg-black/50">
+                <div className="fixed inset-0 bg-gray-900/50 backdrop-blur-sm flex items-center justify-center z-50">
                     <div className="relative">
                         <CompleteBookForm 
                             onClose={closeModal} 
@@ -158,7 +158,7 @@ export default function Main({ children }) {
 
             {/* View Book Modal */}
             {isViewModalOpen && selectedBookId && (
-                <div className="fixed inset-0 bg-gray-900/50 backdrop-blur-sm flex items-center justify-center z-50 dark:bg-black/50">
+                <div className="fixed inset-0 bg-gray-900/50 backdrop-blur-sm flex items-center justify-center z-50">
                     <div className="relative">
                         <BookDetail 
                             bookId={selectedBookId} 
@@ -170,7 +170,7 @@ export default function Main({ children }) {
 
             {/* Edit Book Modal */}
             {isEditModalOpen && selectedBookData && (
-                <div className="fixed inset-0 bg-gray-900/50 backdrop-blur-sm flex items-center justify-center z-50 dark:bg-black/50">
+                <div className="fixed inset-0 bg-gray-900/50 backdrop-blur-sm flex items-center justify-center z-50">
                     <div className="relative">
                         <CompleteBookForm 
                             onClose={closeEditModal} 
