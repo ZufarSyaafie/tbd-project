@@ -16,7 +16,7 @@ export default function Hero() {
 			>
 				"Membaca Buku,
 				<br />
-				Menjalajahi Dunia"
+				Menjelajahi Dunia"
 			</h1>
 		</div>
 	);

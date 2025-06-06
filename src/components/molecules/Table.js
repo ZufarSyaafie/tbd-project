@@ -3,41 +3,45 @@ import React, { useState, useEffect } from 'react';
 import RowUtils from '../molecules/RowUtils'; // Pastikan path ini sesuai dengan struktur folder Anda
 import { supabase } from '@/lib/supabase'; // Sesuaikan dengan path supabase client Anda
 
-export default function Table({ 
-  onRefresh, 
-  itemsPerPage = 25, 
-  currentPage = 1, 
-  onPageChange,
-  onTotalPagesChange,
-  onTotalItemsChange 
+// Update the component definition to accept new props
+export default function Table({
+	onRefresh,
+	itemsPerPage = 25,
+	currentPage = 1,
+	onPageChange,
+	onTotalPagesChange,
+	onTotalItemsChange,
+	onViewBook, // New prop for view action
+	onEditBook, // New prop for edit action
 }) {
 	const [books, setBooks] = useState([]);
 	const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
-  const [totalBooks, setTotalBooks] = useState(0);
+	const [error, setError] = useState(null);
+	const [totalBooks, setTotalBooks] = useState(0);
 
 	// Fungsi untuk mengambil data dari Supabase
-  const fetchBooks = async (page = currentPage, limit = itemsPerPage) => {
-    try {
-      setLoading(true);
-      
-      // Hitung offset untuk pagination
-      const offset = (page - 1) * limit;
-  
-      // Query untuk mendapatkan total count
-      const { count, error: countError } = await supabase
-        .from('Buku')
-        .select('*', { count: 'exact', head: true });
-  
-      if (countError) {
-        console.error('Count error:', countError);
-        throw countError;
-      }
-  
-      // Query untuk mendapatkan data dengan pagination
-      const { data, error } = await supabase
-        .from('Buku')
-        .select(`
+	const fetchBooks = async (page = currentPage, limit = itemsPerPage) => {
+		try {
+			setLoading(true);
+
+			// Hitung offset untuk pagination
+			const offset = (page - 1) * limit;
+
+			// Query untuk mendapatkan total count
+			const { count, error: countError } = await supabase
+				.from('Buku')
+				.select('*', { count: 'exact', head: true });
+
+			if (countError) {
+				console.error('Count error:', countError);
+				throw countError;
+			}
+
+			// Query untuk mendapatkan data dengan pagination
+			const { data, error } = await supabase
+				.from('Buku')
+				.select(
+					`
           id,
           judul,
           genre,
@@ -54,72 +58,78 @@ export default function Table({
               nama_penulis
             )
           )
-        `)
-        .range(offset, offset + limit - 1)
-        .order('id', { ascending: true });
-  
-      if (error) {
-        console.error('Supabase error:', error);
-        throw error;
-      }
-  
-      console.log('Raw data from Supabase:', data);
-  
-      // Transform data untuk menyesuaikan dengan struktur yang diharapkan
-      const transformedData = data?.map(book => {
-        console.log('Processing book:', book);
-        return {
-          ...book,
-          penerbit: book.Penerbit?.nama_penerbit || 'Tidak ada penerbit',
-          penulis: book.Buku_Penulis?.map(bp => bp.Penulis) || []
-        };
-      }) || [];
-  
-      console.log('Transformed data:', transformedData);
-      
-      setBooks(transformedData);
-      setTotalBooks(count || 0);
-      
-      // Update parent component dengan total items dan pages
-      if (onTotalItemsChange) {
-        onTotalItemsChange(count || 0);
-      }
-      
-      const totalPages = Math.ceil((count || 0) / limit);
-      if (onTotalPagesChange) {
-        onTotalPagesChange(totalPages);
-      }
-      
-      setLoading(false);
-  
-    } catch (err) {
-      console.error('Error fetching books:', err);
-      setError(err.message);
-      setLoading(false);
-    }
-  };
+        `
+				)
+				.range(offset, offset + limit - 1)
+				.order('id', { ascending: true });
 
-  useEffect(() => {
-    fetchBooks(currentPage, itemsPerPage);
-  }, [currentPage, itemsPerPage]);
-  
+			if (error) {
+				console.error('Supabase error:', error);
+				throw error;
+			}
+
+			console.log('Raw data from Supabase:', data);
+
+			// Transform data untuk menyesuaikan dengan struktur yang diharapkan
+			const transformedData =
+				data?.map((book) => {
+					console.log('Processing book:', book);
+					return {
+						...book,
+						penerbit: book.Penerbit?.nama_penerbit || 'Tidak ada penerbit',
+						penulis: book.Buku_Penulis?.map((bp) => bp.Penulis) || [],
+					};
+				}) || [];
+
+			console.log('Transformed data:', transformedData);
+
+			setBooks(transformedData);
+			setTotalBooks(count || 0);
+
+			// Update parent component dengan total items dan pages
+			if (onTotalItemsChange) {
+				onTotalItemsChange(count || 0);
+			}
+
+			const totalPages = Math.ceil((count || 0) / limit);
+			if (onTotalPagesChange) {
+				onTotalPagesChange(totalPages);
+			}
+
+			setLoading(false);
+		} catch (err) {
+			console.error('Error fetching books:', err);
+			setError(err.message);
+			setLoading(false);
+		}
+	};
+
+	useEffect(() => {
+		fetchBooks(currentPage, itemsPerPage);
+	}, [currentPage, itemsPerPage]);
 
 	// Expose fetchBooks function through onRefresh callback
-  useEffect(() => {
-    if (onRefresh) {
-      onRefresh(() => fetchBooks(currentPage, itemsPerPage));
-    }
-  }, [onRefresh, currentPage, itemsPerPage]);
+	useEffect(() => {
+		if (onRefresh) {
+			onRefresh(() => fetchBooks(currentPage, itemsPerPage));
+		}
+	}, [onRefresh, currentPage, itemsPerPage]);
 
 	// Handler untuk aksi pada baris
 	const handleView = (bookId) => {
 		console.log('View book:', bookId);
-		// TODO: Implementasi modal atau navigasi ke detail
+		if (onViewBook) {
+			onViewBook(bookId);
+		}
 	};
 
 	const handleEdit = (bookId) => {
 		console.log('Edit book:', bookId);
-		// TODO: Implementasi edit form
+		// Find the book data to pass to the edit modal
+		const bookToEdit = books.find((book) => book.id === bookId);
+		if (bookToEdit && onEditBook) {
+			onEditBook(bookToEdit);
+		}
 	};
 
 	const handleDelete = async (bookId) => {
@@ -222,7 +232,7 @@ export default function Table({
 						))
 					)}
 				</tbody>
-        </table>
-    </div>
+			</table>
+		</div>
 	);
 }

@@ -5,7 +5,11 @@ import { yearOptions, genreOptions } from '@/lib/options';
 import AuthorField from '../molecules/AuthorField';
 import { supabase } from '@/lib/supabase'; // Sesuaikan dengan path supabase client Anda
 
-export default function CompleteBookForm({ onClose, onBookAdded }) {
+export default function CompleteBookForm({
+	onClose,
+	onBookAdded,
+	bookToEdit = null,
+}) {
 	const [formData, setFormData] = useState({
 		title: '',
 		genre: '',
@@ -141,6 +145,31 @@ export default function CompleteBookForm({ onClose, onBookAdded }) {
 		}));
 	};
 
+	// Add this effect to populate form with book data when editing
+	useEffect(() => {
+		if (bookToEdit) {
+			setFormData({
+				title: bookToEdit.judul || '',
+				genre: bookToEdit.genre || '',
+				year: bookToEdit.tahun_terbit
+					? new Date(bookToEdit.tahun_terbit).getFullYear().toString()
+					: '',
+				pages: bookToEdit.jumlah_halaman?.toString() || '',
+				publisher: bookToEdit.penerbit || '',
+				description: bookToEdit.deskripsi || '',
+			});
+
+			// Set authors if available
+			if (bookToEdit.penulis && Array.isArray(bookToEdit.penulis)) {
+				setAuthors(
+					bookToEdit.penulis.map((author) =>
+						typeof author === 'string' ? author : author.nama_penulis || ''
+					)
+				);
+			}
+		}
+	}, [bookToEdit]);
+
 	const handleSubmit = async () => {
 		if (
 			!formData.title ||
@@ -159,48 +188,81 @@ export default function CompleteBookForm({ onClose, onBookAdded }) {
 
 		try {
 			const filteredAuthors = authors.filter((a) => a.trim() !== '');
-
-			// Get or create publisher
 			const publisherId = await getOrCreatePublisher(formData.publisher);
-
-			// Get or create authors
 			const authorIds = await getOrCreateAuthors(filteredAuthors);
-
-			// Convert year to date format
 			const publishDate = convertYearToDate(formData.year);
 
-			// Create book record
-			const { data: bookData, error: bookError } = await supabase
-				.from('Buku')
-				.insert([
-					{
+			if (bookToEdit) {
+				// UPDATE EXISTING BOOK
+				const { error: bookError } = await supabase
+					.from('Buku')
+					.update({
 						judul: formData.title,
 						genre: formData.genre,
-						tahun_terbit: publishDate, // Now sending as date instead of integer
+						tahun_terbit: publishDate,
 						jumlah_halaman: parseInt(formData.pages),
 						deskripsi: formData.description || null,
 						penerbit_id: publisherId,
-					},
-				])
-				.select('id')
-				.single();
+					})
+					.eq('id', bookToEdit.id);
 
-			if (bookError) throw bookError;
+				if (bookError) throw bookError;
 
-			// Create book-author relationships (assuming you have a junction table)
-			// Sesuaikan nama tabel dan kolom dengan struktur database Anda
-			const bookAuthorRelations = authorIds.map((authorId) => ({
-				buku_id: bookData.id,
-				penulis_id: authorId,
-			}));
+				// Delete existing author relationships
+				const { error: deleteError } = await supabase
+					.from('Buku_Penulis')
+					.delete()
+					.eq('buku_id', bookToEdit.id);
 
-			const { error: relationError } = await supabase
-				.from('Buku_Penulis') // Sesuaikan nama tabel junction
-				.insert(bookAuthorRelations);
+				if (deleteError) throw deleteError;
 
-			if (relationError) throw relationError;
+				// Create new author relationships
+				const bookAuthorRelations = authorIds.map((authorId) => ({
+					buku_id: bookToEdit.id,
+					penulis_id: authorId,
+				}));
 
-			alert('Buku berhasil disimpan!');
+				const { error: relationError } = await supabase
+					.from('Buku_Penulis')
+					.insert(bookAuthorRelations);
+
+				if (relationError) throw relationError;
+
+				alert('Buku berhasil diperbarui!');
+			} else {
+				// CREATE NEW BOOK - your existing code for creating a book
+				const { data: bookData, error: bookError } = await supabase
+					.from('Buku')
+					.insert([
+						{
+							judul: formData.title,
+							genre: formData.genre,
+							tahun_terbit: publishDate, // Now sending as date instead of integer
+							jumlah_halaman: parseInt(formData.pages),
+							deskripsi: formData.description || null,
+							penerbit_id: publisherId,
+						},
+					])
+					.select('id')
+					.single();
+
+				if (bookError) throw bookError;
+
+				// Create book-author relationships (assuming you have a junction table)
+				// Sesuaikan nama tabel dan kolom dengan struktur database Anda
+				const bookAuthorRelations = authorIds.map((authorId) => ({
+					buku_id: bookData.id,
+					penulis_id: authorId,
+				}));
+
+				const { error: relationError } = await supabase
+					.from('Buku_Penulis') // Sesuaikan nama tabel junction
+					.insert(bookAuthorRelations);
+
+				if (relationError) throw relationError;
+
+				alert('Buku berhasil disimpan!');
+			}
 
 			// Reset form
 			setFormData({
@@ -250,7 +312,9 @@ export default function CompleteBookForm({ onClose, onBookAdded }) {
 		<div className="w-full max-w-lg overflow-hidden rounded-lg bg-slate-800 shadow-2xl">
 			{/* Header */}
 			<div className="flex items-center justify-between bg-[#C27AFF] px-6 py-4">
-				<h2 className="text-2xl font-bold text-white">TAMBAH BUKU</h2>
+				<h2 className="text-2xl font-bold text-white">
+					{bookToEdit ? 'EDIT BUKU' : 'TAMBAH BUKU'}
+				</h2>
 				<button
 					type="button"
 					onClick={handleClose}
