@@ -1,9 +1,9 @@
 'use client';
 import { useState, useEffect } from 'react';
-import { Plus, X } from 'lucide-react';
+import { Plus, X, AlertCircle } from 'lucide-react';
 import { yearOptions, genreOptions } from '@/lib/options';
 import AuthorField from '../molecules/AuthorField';
-import { supabase } from '@/lib/supabase'; // Sesuaikan dengan path supabase client Anda
+import { supabase } from '@/lib/supabase';
 
 export default function CompleteBookForm({
 	onClose,
@@ -24,6 +24,49 @@ export default function CompleteBookForm({
 	const [existingPublishers, setExistingPublishers] = useState([]);
 	const [isLoading, setIsLoading] = useState(false);
 	const [error, setError] = useState('');
+
+	// New state for validation errors
+	const [validationErrors, setValidationErrors] = useState({
+		title: '',
+		genre: '',
+		year: '',
+		pages: '',
+		publisher: '',
+		authors: [],
+	});
+
+	// Validation functions
+	const validateGenre = (value) => {
+		// Genre should only contain letters and spaces
+		if (value && !/^[a-zA-Z\s]+$/.test(value)) {
+			return 'Genre hanya boleh berisi huruf dan spasi';
+		}
+		return '';
+	};
+
+	const validateAuthor = (value) => {
+		// Author names can contain letters, spaces, and some special characters used in names
+		if (value && !/^[a-zA-Z\s\-'.]+$/.test(value)) {
+			return "Nama penulis hanya boleh berisi huruf, spasi, dan tanda (-')";
+		}
+		return '';
+	};
+
+	const validateYear = (value) => {
+		// Year should only contain digits
+		if (value && !/^\d+$/.test(value)) {
+			return 'Tahun hanya boleh berisi angka';
+		}
+		return '';
+	};
+
+	const validatePages = (value) => {
+		// Pages should be a positive number
+		if (value && (!/^\d+$/.test(value) || parseInt(value) <= 0)) {
+			return 'Jumlah halaman harus berupa angka positif';
+		}
+		return '';
+	};
 
 	// Fetch existing authors and publishers from Supabase
 	useEffect(() => {
@@ -138,10 +181,52 @@ export default function CompleteBookForm({
 		}
 	};
 
+	// Updated handleInputChange with validation
 	const handleInputChange = (field, value) => {
 		setFormData((prev) => ({
 			...prev,
 			[field]: value,
+		}));
+
+		// Validate input based on field type
+		let validationError = '';
+		switch (field) {
+			case 'genre':
+				validationError = validateGenre(value);
+				break;
+			case 'year':
+				validationError = validateYear(value);
+				break;
+			case 'pages':
+				validationError = validatePages(value);
+				break;
+			default:
+				break;
+		}
+
+		// Update validation errors
+		setValidationErrors((prev) => ({
+			...prev,
+			[field]: validationError,
+		}));
+	};
+
+	// New handler for author input with validation
+	const handleAuthorChange = (index, value) => {
+		const newAuthors = [...authors];
+		newAuthors[index] = value;
+
+		// Validate author name
+		const error = validateAuthor(value);
+
+		// Update validation errors for this author
+		const newAuthorErrors = [...validationErrors.authors];
+		newAuthorErrors[index] = error;
+
+		setAuthors(newAuthors);
+		setValidationErrors((prev) => ({
+			...prev,
+			authors: newAuthorErrors,
 		}));
 	};
 
@@ -161,25 +246,63 @@ export default function CompleteBookForm({
 
 			// Set authors if available
 			if (bookToEdit.penulis && Array.isArray(bookToEdit.penulis)) {
-				setAuthors(
-					bookToEdit.penulis.map((author) =>
-						typeof author === 'string' ? author : author.nama_penulis || ''
-					)
+				const editAuthors = bookToEdit.penulis.map((author) =>
+					typeof author === 'string' ? author : author.nama_penulis || ''
 				);
+				setAuthors(editAuthors);
+
+				// Initialize author validation errors array
+				setValidationErrors((prev) => ({
+					...prev,
+					authors: Array(editAuthors.length).fill(''),
+				}));
 			}
+		} else {
+			// Initialize author validation errors array for new form
+			setValidationErrors((prev) => ({
+				...prev,
+				authors: [''],
+			}));
 		}
 	}, [bookToEdit]);
 
+	// Updated submit handler with comprehensive validation
 	const handleSubmit = async () => {
-		if (
-			!formData.title ||
-			!formData.genre ||
-			!formData.year ||
-			!formData.pages ||
-			!formData.publisher ||
-			!authors[0]
-		) {
-			alert('Semua field wajib diisi dan minimal satu penulis harus ada.');
+		// Validate all fields before submission
+		const errors = {
+			title: !formData.title ? 'Judul buku wajib diisi' : '',
+			genre: !formData.genre
+				? 'Genre wajib diisi'
+				: validateGenre(formData.genre),
+			year: !formData.year
+				? 'Tahun terbit wajib diisi'
+				: validateYear(formData.year),
+			pages: !formData.pages
+				? 'Jumlah halaman wajib diisi'
+				: validatePages(formData.pages),
+			publisher: !formData.publisher ? 'Penerbit wajib diisi' : '',
+			authors: [],
+		};
+
+		// Filter out empty authors and validate remaining ones
+		const filteredAuthors = authors.filter((a) => a.trim() !== '');
+		if (filteredAuthors.length === 0) {
+			errors.authorGeneral = 'Minimal satu penulis wajib diisi';
+		} else {
+			errors.authors = filteredAuthors.map(validateAuthor);
+		}
+
+		// Check if we have any validation errors
+		const hasErrors =
+			Object.values(errors).some(
+				(err) => typeof err === 'string' && err !== ''
+			) ||
+			errors.authors.some((err) => err !== '') ||
+			errors.authorGeneral;
+
+		if (hasErrors) {
+			setValidationErrors(errors);
+			alert('Ada kesalahan pada form. Silakan periksa kembali input Anda.');
 			return;
 		}
 
@@ -187,7 +310,6 @@ export default function CompleteBookForm({
 		setError('');
 
 		try {
-			const filteredAuthors = authors.filter((a) => a.trim() !== '');
 			const publisherId = await getOrCreatePublisher(formData.publisher);
 			const authorIds = await getOrCreateAuthors(filteredAuthors);
 			const publishDate = convertYearToDate(formData.year);
@@ -230,14 +352,14 @@ export default function CompleteBookForm({
 
 				alert('Buku berhasil diperbarui!');
 			} else {
-				// CREATE NEW BOOK - your existing code for creating a book
+				// CREATE NEW BOOK
 				const { data: bookData, error: bookError } = await supabase
 					.from('Buku')
 					.insert([
 						{
 							judul: formData.title,
 							genre: formData.genre,
-							tahun_terbit: publishDate, // Now sending as date instead of integer
+							tahun_terbit: publishDate,
 							jumlah_halaman: parseInt(formData.pages),
 							deskripsi: formData.description || null,
 							penerbit_id: publisherId,
@@ -248,15 +370,14 @@ export default function CompleteBookForm({
 
 				if (bookError) throw bookError;
 
-				// Create book-author relationships (assuming you have a junction table)
-				// Sesuaikan nama tabel dan kolom dengan struktur database Anda
+				// Create book-author relationships
 				const bookAuthorRelations = authorIds.map((authorId) => ({
 					buku_id: bookData.id,
 					penulis_id: authorId,
 				}));
 
 				const { error: relationError } = await supabase
-					.from('Buku_Penulis') // Sesuaikan nama tabel junction
+					.from('Buku_Penulis')
 					.insert(bookAuthorRelations);
 
 				if (relationError) throw relationError;
@@ -274,6 +395,14 @@ export default function CompleteBookForm({
 				description: '',
 			});
 			setAuthors(['']);
+			setValidationErrors({
+				title: '',
+				genre: '',
+				year: '',
+				pages: '',
+				publisher: '',
+				authors: [''],
+			});
 
 			// Refresh existing data
 			await fetchExistingData();
@@ -331,27 +460,41 @@ export default function CompleteBookForm({
 			<div className="space-y-4 p-6 text-white">
 				<div>
 					<label className="mb-2 block text-lg font-semibold text-gray-300">
-						Judul:
+						Judul: <span className="text-red-500">*</span>
 					</label>
 					<input
 						type="text"
 						value={formData.title}
 						onChange={(e) => handleInputChange('title', e.target.value)}
-						className="w-full rounded border-0 bg-slate-700 p-3 text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-[#C27AFF]"
+						className={`w-full rounded border-0 bg-slate-700 p-3 text-white placeholder-gray-400 focus:outline-none focus:ring-2 ${
+							validationErrors.title
+								? 'border-2 border-red-500 focus:ring-red-500'
+								: 'focus:ring-[#C27AFF]'
+						}`}
 						placeholder="Masukkan judul buku"
 						disabled={isLoading}
 					/>
+					{validationErrors.title && (
+						<div className="mt-1 flex items-center text-sm text-red-500">
+							<AlertCircle size={16} className="mr-1" />
+							{validationErrors.title}
+						</div>
+					)}
 				</div>
 
 				<div className="grid grid-cols-3 gap-4">
 					<div>
 						<label className="mb-2 block text-lg font-semibold text-gray-300">
-							Genre:
+							Genre: <span className="text-red-500">*</span>
 						</label>
 						<select
 							value={formData.genre}
 							onChange={(e) => handleInputChange('genre', e.target.value)}
-							className="w-full rounded border-0 bg-slate-700 p-3 text-white focus:outline-none focus:ring-2 focus:ring-[#C27AFF]"
+							className={`w-full rounded border-0 bg-slate-700 p-3 text-white focus:outline-none focus:ring-2 ${
+								validationErrors.genre
+									? 'border-2 border-red-500 focus:ring-red-500'
+									: 'focus:ring-[#C27AFF]'
+							}`}
 							disabled={isLoading}
 						>
 							<option value="">Pilih Genre</option>
@@ -361,16 +504,26 @@ export default function CompleteBookForm({
 								</option>
 							))}
 						</select>
+						{validationErrors.genre && (
+							<div className="mt-1 flex items-center text-sm text-red-500">
+								<AlertCircle size={16} className="mr-1" />
+								{validationErrors.genre}
+							</div>
+						)}
 					</div>
 
 					<div>
 						<label className="mb-2 block text-lg font-semibold text-gray-300">
-							Tahun:
+							Tahun: <span className="text-red-500">*</span>
 						</label>
 						<select
 							value={formData.year}
 							onChange={(e) => handleInputChange('year', e.target.value)}
-							className="w-full rounded border-0 bg-slate-700 p-3 text-white focus:outline-none focus:ring-2 focus:ring-[#C27AFF]"
+							className={`w-full rounded border-0 bg-slate-700 p-3 text-white focus:outline-none focus:ring-2 ${
+								validationErrors.year
+									? 'border-2 border-red-500 focus:ring-red-500'
+									: 'focus:ring-[#C27AFF]'
+							}`}
 							disabled={isLoading}
 						>
 							<option value="">Pilih Tahun</option>
@@ -380,41 +533,136 @@ export default function CompleteBookForm({
 								</option>
 							))}
 						</select>
+						{validationErrors.year && (
+							<div className="mt-1 flex items-center text-sm text-red-500">
+								<AlertCircle size={16} className="mr-1" />
+								{validationErrors.year}
+							</div>
+						)}
 					</div>
 
 					<div>
 						<label className="mb-2 block text-lg font-semibold text-gray-300">
-							Halaman:
+							Halaman: <span className="text-red-500">*</span>
 						</label>
 						<input
 							type="number"
 							min="1"
 							value={formData.pages}
 							onChange={(e) => handleInputChange('pages', e.target.value)}
-							className="w-full rounded border-0 bg-slate-700 p-3 text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-[#C27AFF]"
+							className={`w-full rounded border-0 bg-slate-700 p-3 text-white placeholder-gray-400 focus:outline-none focus:ring-2 ${
+								validationErrors.pages
+									? 'border-2 border-red-500 focus:ring-red-500'
+									: 'focus:ring-[#C27AFF]'
+							}`}
 							placeholder="Jumlah"
 							disabled={isLoading}
 						/>
+						{validationErrors.pages && (
+							<div className="mt-1 flex items-center text-sm text-red-500">
+								<AlertCircle size={16} className="mr-1" />
+								{validationErrors.pages}
+							</div>
+						)}
 					</div>
 				</div>
 
-				<AuthorField
-					authors={authors}
-					setAuthors={setAuthors}
-					existingAuthors={existingAuthors}
-					disabled={isLoading}
-				/>
+				{/* Modified AuthorField component call */}
+				<div>
+					<label className="mb-2 block text-lg font-semibold text-gray-300">
+						Penulis: <span className="text-red-500">*</span>
+					</label>
+
+					{validationErrors.authorGeneral && (
+						<div className="mb-2 flex items-center text-sm text-red-500">
+							<AlertCircle size={16} className="mr-1" />
+							{validationErrors.authorGeneral}
+						</div>
+					)}
+
+					{authors.map((author, index) => (
+						<div key={index} className="mb-2 flex items-center">
+							<input
+								type="text"
+								value={author}
+								onChange={(e) => handleAuthorChange(index, e.target.value)}
+								list={`author-options-${index}`}
+								className={`w-full rounded border-0 bg-slate-700 p-3 text-white placeholder-gray-400 focus:outline-none focus:ring-2 ${
+									validationErrors.authors?.[index]
+										? 'border-2 border-red-500 focus:ring-red-500'
+										: 'focus:ring-[#C27AFF]'
+								}`}
+								placeholder="Nama penulis"
+								disabled={isLoading}
+							/>
+
+							<datalist id={`author-options-${index}`}>
+								{existingAuthors.map((existingAuthor) => (
+									<option key={existingAuthor} value={existingAuthor} />
+								))}
+							</datalist>
+
+							{index === authors.length - 1 ? (
+								<button
+									type="button"
+									onClick={() => setAuthors([...authors, ''])}
+									className="ml-2 rounded bg-blue-500 p-3 text-white transition-colors hover:bg-blue-600 disabled:opacity-50"
+									disabled={isLoading}
+								>
+									<Plus size={20} />
+								</button>
+							) : (
+								<button
+									type="button"
+									onClick={() => {
+										const newAuthors = [...authors];
+										newAuthors.splice(index, 1);
+										setAuthors(newAuthors);
+
+										const newErrors = [...validationErrors.authors];
+										newErrors.splice(index, 1);
+										setValidationErrors({
+											...validationErrors,
+											authors: newErrors,
+										});
+									}}
+									className="ml-2 rounded bg-red-500 p-3 text-white transition-colors hover:bg-red-600 disabled:opacity-50"
+									disabled={isLoading}
+								>
+									<X size={20} />
+								</button>
+							)}
+						</div>
+					))}
+
+					{authors.map(
+						(_, index) =>
+							validationErrors.authors?.[index] && (
+								<div
+									key={`error-${index}`}
+									className="mt-1 flex items-center text-sm text-red-500"
+								>
+									<AlertCircle size={16} className="mr-1" />
+									{validationErrors.authors[index]}
+								</div>
+							)
+					)}
+				</div>
 
 				<div>
 					<label className="mb-2 block text-lg font-semibold text-gray-300">
-						Penerbit:
+						Penerbit: <span className="text-red-500">*</span>
 					</label>
 					<input
 						type="text"
 						list="publisher-options"
 						value={formData.publisher}
 						onChange={(e) => handleInputChange('publisher', e.target.value)}
-						className="w-full rounded border-0 bg-slate-700 p-3 text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-[#C27AFF]"
+						className={`w-full rounded border-0 bg-slate-700 p-3 text-white placeholder-gray-400 focus:outline-none focus:ring-2 ${
+							validationErrors.publisher
+								? 'border-2 border-red-500 focus:ring-red-500'
+								: 'focus:ring-[#C27AFF]'
+						}`}
 						placeholder="Nama penerbit"
 						disabled={isLoading}
 					/>
@@ -423,6 +671,12 @@ export default function CompleteBookForm({
 							<option key={publisher} value={publisher} />
 						))}
 					</datalist>
+					{validationErrors.publisher && (
+						<div className="mt-1 flex items-center text-sm text-red-500">
+							<AlertCircle size={16} className="mr-1" />
+							{validationErrors.publisher}
+						</div>
+					)}
 				</div>
 
 				<div>

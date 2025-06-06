@@ -1,13 +1,25 @@
 'use client';
-import { useState } from 'react';
-import { Plus, X } from 'lucide-react';
+import React, { useState } from 'react';
+import { Plus, X, AlertCircle } from 'lucide-react';
 
 export default function AuthorField({
 	authors,
 	setAuthors,
 	existingAuthors,
 	disabled = false,
+	validationErrors = [],
+	onAuthorChange,
 }) {
+	const handleAuthorChange = (index, value) => {
+		const newAuthors = [...authors];
+		newAuthors[index] = value;
+		setAuthors(newAuthors);
+
+		if (onAuthorChange) {
+			onAuthorChange(index, value);
+		}
+	};
+
 	const addAuthor = () => {
 		if (!disabled) {
 			setAuthors([...authors, '']);
@@ -20,59 +32,67 @@ export default function AuthorField({
 		}
 	};
 
-	const updateAuthor = (index, value) => {
-		if (!disabled) {
-			const newAuthors = [...authors];
-			newAuthors[index] = value;
-			setAuthors(newAuthors);
-		}
-	};
-
 	return (
-		<div>
+		<div className="space-y-2">
 			<label className="mb-2 block text-lg font-semibold text-gray-300">
-				Penulis:
+				Penulis <span className="text-red-500">*</span>
 			</label>
+
 			{authors.map((author, index) => (
-				<div key={index} className="mb-2 flex items-center gap-2">
+				<div key={index} className="mb-2 flex items-center">
 					<input
-						list="author-options"
+						type="text"
 						value={author}
-						onChange={(e) => updateAuthor(index, e.target.value)}
-						className="flex-1 rounded border-0 bg-slate-700 p-3 text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-purple-400 disabled:opacity-50"
-						placeholder={
-							index === 0 ? 'Penulis utama (wajib)' : 'Penulis tambahan'
-						}
+						onChange={(e) => handleAuthorChange(index, e.target.value)}
+						list={`author-options-${index}`}
+						className={`w-full rounded border-0 bg-slate-700 p-3 text-white placeholder-gray-400 focus:outline-none focus:ring-2 ${
+							validationErrors[index]
+								? 'border-2 border-red-500 focus:ring-red-500'
+								: 'focus:ring-[#C27AFF]'
+						}`}
+						placeholder="Nama penulis"
 						disabled={disabled}
 					/>
-					{authors.length > 1 && (
+
+					<datalist id={`author-options-${index}`}>
+						{existingAuthors?.map((existingAuthor) => (
+							<option key={existingAuthor} value={existingAuthor} />
+						))}
+					</datalist>
+
+					{index === authors.length - 1 ? (
+						<button
+							type="button"
+							onClick={addAuthor}
+							className="ml-2 rounded bg-blue-500 p-3 text-white transition-colors hover:bg-blue-600 disabled:opacity-50"
+							disabled={disabled}
+						>
+							<Plus size={20} />
+						</button>
+					) : (
 						<button
 							type="button"
 							onClick={() => removeAuthor(index)}
-							className="size-7 rounded bg-[#FB64B6] text-white transition-colors hover:bg-[#FF008A] disabled:cursor-not-allowed disabled:opacity-50"
+							className="ml-2 rounded bg-red-500 p-3 text-white transition-colors hover:bg-red-600 disabled:opacity-50"
 							disabled={disabled}
 						>
-							<X size={15} strokeWidth={4} className="m-auto" />
+							<X size={20} />
 						</button>
 					)}
 				</div>
 			))}
-			<button
-				type="button"
-				onClick={addAuthor}
-				className="flex items-center gap-2 rounded bg-[#C27AFF] px-3 py-2 text-white transition-colors hover:bg-purple-600 disabled:cursor-not-allowed disabled:opacity-50"
-				disabled={disabled}
-			>
-				<Plus size={15} strokeWidth={4} />
-				Tambah Penulis
-			</button>
 
-			{/* Datalist untuk autocomplete penulis */}
-			<datalist id="author-options">
-				{existingAuthors.map((author) => (
-					<option key={author} value={author} />
-				))}
-			</datalist>
+			{validationErrors?.map((error, index) =>
+				error ? (
+					<div
+						key={`error-${index}`}
+						className="mt-1 flex items-center text-sm text-red-500"
+					>
+						<AlertCircle size={16} className="mr-1" />
+						{error}
+					</div>
+				) : null
+			)}
 		</div>
 	);
 }
