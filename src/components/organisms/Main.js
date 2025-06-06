@@ -10,7 +10,7 @@ export default function Main({ children }) {
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [isViewModalOpen, setIsViewModalOpen] = useState(false); // New state for view modal
     const [isEditModalOpen, setIsEditModalOpen] = useState(false); // New state for edit modal
-    const [selectedBookId, setSelectedBookId] = useState(null); // Track selected book ID
+    const [selecteditemId, setSelecteditemId] = useState(null); // Track selected book ID
     const [selectedBookData, setSelectedBookData] = useState(null); // Track selected book data for editing
     const [isRefreshing, setIsRefreshing] = useState(false);
     const refreshFunction = useRef(null);
@@ -30,14 +30,14 @@ export default function Main({ children }) {
     }, []);
 
     // Open view modal
-    const openViewModal = useCallback((bookId) => {
-        setSelectedBookId(bookId);
+    const openViewModal = useCallback((itemId) => {
+        setSelecteditemId(itemId);
         setIsViewModalOpen(true);
     }, []);
     
     const closeViewModal = useCallback(() => {
         setIsViewModalOpen(false);
-        setSelectedBookId(null);
+        setSelecteditemId(null);
     }, []);
 
     // Open edit modal
@@ -157,11 +157,11 @@ export default function Main({ children }) {
             )}
 
             {/* View Book Modal */}
-            {isViewModalOpen && selectedBookId && (
+            {isViewModalOpen && selecteditemId && (
                 <div className="fixed inset-0 bg-gray-900/50 backdrop-blur-sm flex items-center justify-center z-50">
                     <div className="relative">
                         <BookDetail 
-                            bookId={selectedBookId} 
+                            itemId={selecteditemId} 
                             onClose={closeViewModal} 
                         />
                     </div>

@@ -1,18 +1,15 @@
 import RectButton from '../atoms/RectButton';
 import React from 'react';
-import { Eye, Edit, Trash2 } from "lucide-react";
+import { Eye, Edit, Trash2 } from 'lucide-react';
 
-
-
-
-export default function RowUtils({ bookId, onView, onEdit, onDelete }) {
+export default function RowUtils({ itemId, onView, onEdit, onDelete }) {
 	return (
 		<div className="flex gap-2.5">
 			<RectButton
 				className={
 					'bg-[#00BCFF] text-xl font-bold text-white transition-colors duration-300 ease-in-out hover:cursor-pointer hover:bg-[#0099cc]'
 				}
-				onClick={() => onView(bookId)}
+				onClick={() => onView(itemId)}
 			>
 				<Eye size={16} className="text-white" />
 			</RectButton>
@@ -20,7 +17,7 @@ export default function RowUtils({ bookId, onView, onEdit, onDelete }) {
 				className={
 					'bg-[#C27AFF] text-xl font-bold text-white transition-colors duration-300 ease-in-out hover:cursor-pointer hover:bg-purple-600'
 				}
-				onClick={() => onEdit(bookId)}
+				onClick={() => onEdit(itemId)}
 			>
 				<Edit size={16} className="text-white" />
 			</RectButton>
@@ -28,7 +25,7 @@ export default function RowUtils({ bookId, onView, onEdit, onDelete }) {
 				className={
 					'bg-[#FB64B6] text-xl font-bold text-white transition-colors duration-300 ease-in-out hover:cursor-pointer hover:bg-[#FF008A]'
 				}
-				onClick={() => onDelete(bookId)}
+				onClick={() => onDelete(itemId)}
 			>
 				<Trash2 size={16} className="text-white" />
 			</RectButton>

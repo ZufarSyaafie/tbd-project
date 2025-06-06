@@ -116,27 +116,27 @@ export default function Table({
 	}, [onRefresh, currentPage, itemsPerPage]);
 
 	// Handler untuk aksi pada baris
-	const handleView = (bookId) => {
-		console.log('View book:', bookId);
+	const handleView = (itemId) => {
+		console.log('View book:', itemId);
 		if (onViewBook) {
-			onViewBook(bookId);
+			onViewBook(itemId);
 		}
 	};
 
-	const handleEdit = (bookId) => {
-		console.log('Edit book:', bookId);
+	const handleEdit = (itemId) => {
+		console.log('Edit book:', itemId);
 		// Find the book data to pass to the edit modal
-		const bookToEdit = books.find((book) => book.id === bookId);
+		const bookToEdit = books.find((book) => book.id === itemId);
 		if (bookToEdit && onEditBook) {
 			onEditBook(bookToEdit);
 		}
 	};
 
-	const handleDelete = async (bookId) => {
+	const handleDelete = async (itemId) => {
 		if (window.confirm('Apakah Anda yakin ingin menghapus buku ini?')) {
 			try {
 				// Delete dari Supabase
-				const { error } = await supabase.from('Buku').delete().eq('id', bookId);
+				const { error } = await supabase.from('Buku').delete().eq('id', itemId);
 
 				if (error) throw error;
 
@@ -222,7 +222,7 @@ export default function Table({
 								<td className="px-4 py-3">{formatYear(book.tahun_terbit)}</td>
 								<td className="w-1.5 px-4 py-3">
 									<RowUtils
-										bookId={book.id}
+										itemId={book.id}
 										onView={handleView}
 										onEdit={handleEdit}
 										onDelete={handleDelete}
