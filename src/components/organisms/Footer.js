@@ -2,7 +2,7 @@ import React from "react";
 
 export default function Footer() {
   return (
-    <footer className="bg-[#10141E] text-[#99A1AF] w-full">
+    <footer className="bg-[#10141E] text-[#99A1AF] w-full text-sm">
       <div className="grid grid-cols-4 grid-rows-2 gap-8 py-9 px-20">
         {/* Logo */}
         <div className="row-span-2">
@@ -44,27 +44,27 @@ export default function Footer() {
           <ul className="flex flex-wrap gap-3 list-none mt-4">
             <li>
               <a href="#">
-                <img src="/image/wa.svg" alt="WhatsApp" className="w-8 h-8 hover:scale-110 transition-transform duration-300" />
+                <img src="/image/wa.svg" alt="WhatsApp" className="w-6 h-6 hover:scale-110 transition-transform duration-300" />
               </a>
             </li>
             <li>
               <a href="#">
-                <img src="/image/ig.svg" alt="Instagram" className="w-8 h-8 hover:scale-110 transition-transform duration-300" />
+                <img src="/image/ig.svg" alt="Instagram" className="w-6 h-6 hover:scale-110 transition-transform duration-300" />
               </a>
             </li>
             <li>
               <a href="#">
-                <img src="/image/x.svg" alt="X" className="w-8 h-8 hover:scale-110 transition-transform duration-300" />
+                <img src="/image/x.svg" alt="X" className="w-6 h-6 hover:scale-110 transition-transform duration-300" />
               </a>
             </li>
             <li>
               <a href="#">
-                <img src="/image/fb.svg" alt="Facebook" className="w-8 h-8 hover:scale-110 transition-transform duration-300" />
+                <img src="/image/fb.svg" alt="Facebook" className="w-6 h-6 hover:scale-110 transition-transform duration-300" />
               </a>
             </li>
             <li>
               <a href="#">
-                <img src="/image/linkedin.svg" alt="LinkedIn" className="w-8 h-8 hover:scale-110 transition-transform duration-300" />
+                <img src="/image/linkedin.svg" alt="LinkedIn" className="w-6 h-6 hover:scale-110 transition-transform duration-300" />
               </a>
             </li>
           </ul>
