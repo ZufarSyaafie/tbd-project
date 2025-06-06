@@ -4,7 +4,7 @@ import Footer from '@/components/organisms/Footer';
 import React from 'react';
 import MainPenulis from '@/components/organisms/MainPenulis';
 
-export default function TambahBukuPage() {
+export default function TambahPenulisPage() {
 	return (
 		<div className="flex flex-col items-center">
 			<Navbar />

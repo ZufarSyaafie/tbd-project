@@ -56,18 +56,20 @@ export default function DetailPenulis({ authorId, onClose }) {
 							{author.nama_penulis}
 						</h1>
 
-						<div>
-							<h3 className="mb-2 text-lg font-semibold text-gray-300">ID</h3>
-							<p className="rounded bg-slate-700 px-3 py-1">{author.id}</p>
-						</div>
+						<div className="grid grid-cols-2 gap-4">
+							<div>
+								<h3 className="mb-2 text-lg font-semibold text-gray-300">ID</h3>
+								<p className="rounded bg-slate-700 px-3 py-1">{author.id}</p>
+							</div>
 
-						<div>
-							<h3 className="mb-2 text-lg font-semibold text-gray-300">
-								Email
-							</h3>
-							<p className="rounded bg-slate-700 px-3 py-1">
-								{author.email || 'Tidak ada email'}
-							</p>
+							<div>
+								<h3 className="mb-2 text-lg font-semibold text-gray-300">
+									Email
+								</h3>
+								<p className="rounded bg-slate-700 px-3 py-1">
+									{author.email || 'Tidak ada email'}
+								</p>
+							</div>
 						</div>
 					</div>
 				) : (

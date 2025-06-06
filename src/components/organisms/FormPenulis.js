@@ -123,7 +123,7 @@ export default function FormPenulis({
 
 				<div>
 					<label className="mb-2 block text-lg font-semibold text-gray-300">
-						Email (opsional):
+						Email:
 					</label>
 					<input
 						type="email"
