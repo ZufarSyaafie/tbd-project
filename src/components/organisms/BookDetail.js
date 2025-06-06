@@ -107,12 +107,12 @@ export default function BookDetail({ bookId, onClose }) {
               </div>
             </div>
             
-            <div>
-              <h3 className="text-lg font-semibold text-gray-300">Penulis</h3>
+            <div> 
+              <h3 className="text-lg font-semibold text-gray-300 mb-2">Penulis</h3>
               {book.penulis.length > 0 ? (
-                <ul className="list-inside list-disc">
+                <ul className="list-inside list-none space-y-2">
                   {book.penulis.map((author, index) => (
-                    <li key={index}>{author}</li>
+                    <li key={index} className='rounded bg-slate-700 px-3 py-1'>{author}</li>
                   ))}
                 </ul>
               ) : (
@@ -121,13 +121,13 @@ export default function BookDetail({ bookId, onClose }) {
             </div>
             
             <div>
-              <h3 className="text-lg font-semibold text-gray-300">Penerbit</h3>
-              <p>{book.penerbit}</p>
+              <h3 className="text-lg font-semibold text-gray-300 mb-2">Penerbit</h3>
+              <p className="rounded bg-slate-700 px-3 py-1">{book.penerbit}</p>
             </div>
             
             {book.deskripsi && (
               <div>
-                <h3 className="text-lg font-semibold text-gray-300">Deskripsi</h3>
+                <h3 className="text-lg font-semibold text-gray-300 mb-2">Deskripsi</h3>
                 <p className="whitespace-pre-line rounded bg-slate-700 p-4">{book.deskripsi}</p>
               </div>
             )}
