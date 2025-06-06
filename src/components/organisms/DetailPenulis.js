@@ -32,7 +32,7 @@ export default function DetailPenulis({ authorId, onClose }) {
 	}, [authorId]);
 
 	return (
-		<div className="w-full max-w-2xl overflow-hidden rounded-lg bg-slate-800 shadow-2xl">
+		<div className="w-full max-w-md overflow-hidden rounded-lg bg-slate-800 shadow-2xl">
 			<div className="flex items-center justify-between bg-[#00BCFF] px-6 py-4">
 				<h2 className="text-2xl font-bold text-white">DETAIL PENULIS</h2>
 				<button

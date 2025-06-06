@@ -8,7 +8,7 @@ const ptSerif = PT_Serif({
 	style: 'italic',
 });
 
-export default function Hero() {
+export default function Hero({heroImage, heroText1}) {
 	return (
 		<div className="flex h-[75vh] w-screen flex-col items-center justify-center bg-[url('/image/hero.png')] bg-cover bg-bottom bg-no-repeat text-center">
 			<h1
