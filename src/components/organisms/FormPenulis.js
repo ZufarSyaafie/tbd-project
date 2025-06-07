@@ -1,5 +1,5 @@
 'use client';
-import { X } from 'lucide-react';
+import { X, AlertCircle } from 'lucide-react';
 import { useState, useEffect } from 'react';
 import { supabase } from '@/lib/supabase';
 
@@ -15,6 +15,29 @@ export default function FormPenulis({
 	const [isLoading, setIsLoading] = useState(false);
 	const [error, setError] = useState('');
 
+	// New state for validation errors
+	const [validationErrors, setValidationErrors] = useState({
+		name: '',
+		email: '',
+	});
+
+	// Validation functions
+	const validateName = (value) => {
+		// Name should only contain letters, spaces, and common punctuation for names
+		if (value && !/^[a-zA-Z\s\-'.]+$/.test(value)) {
+			return "Nama penulis hanya boleh berisi huruf, spasi, dan tanda (-')";
+		}
+		return '';
+	};
+
+	const validateEmail = (value) => {
+		// Basic email validation
+		if (value && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value)) {
+			return 'Format email tidak valid';
+		}
+		return '';
+	};
+	
 	// Populate form jika edit
 	useEffect(() => {
 		if (authorToEdit) {
@@ -27,11 +50,40 @@ export default function FormPenulis({
 
 	const handleInputChange = (field, value) => {
 		setFormData((prev) => ({ ...prev, [field]: value }));
+
+		// Validate input based on field type
+		let validationError = '';
+		switch (field) {
+			case 'name':
+				validationError = validateName(value);
+				break;
+			case 'email':
+				validationError = validateEmail(value);
+				break;
+			default:
+				break;
+		}
+
+		// Update validation errors
+		setValidationErrors((prev) => ({
+			...prev,
+			[field]: validationError,
+		}));
 	};
 
 	const handleSubmit = async () => {
-		if (!formData.name) {
-			alert('Nama penulis wajib diisi');
+		// Validate all fields before submission
+		const errors = {
+			name: !formData.name ? 'Nama penulis wajib diisi' : validateName(formData.name),
+			email: formData.email ? validateEmail(formData.email) : '',
+		};
+
+		// Check if we have any validation errors
+		const hasErrors = Object.values(errors).some(err => err !== '');
+
+		if (hasErrors) {
+			setValidationErrors(errors);
+			alert('Ada kesalahan pada form. Silakan periksa kembali input Anda.');
 			return;
 		}
 
@@ -66,6 +118,7 @@ export default function FormPenulis({
 
 			// Reset form
 			setFormData({ name: '', email: '' });
+			setValidationErrors({ name: '', email: '' });
 
 			// Callback ke parent
 			if (onAuthorAdded) onAuthorAdded();
@@ -109,16 +162,26 @@ export default function FormPenulis({
 			<div className="space-y-4 p-6 text-white">
 				<div>
 					<label className="mb-2 block text-lg font-semibold text-gray-300">
-						Nama Penulis:
+						Nama Penulis: <span className="text-red-500">*</span>
 					</label>
 					<input
 						type="text"
 						value={formData.name}
 						onChange={(e) => handleInputChange('name', e.target.value)}
-						className="w-full rounded border-0 bg-slate-700 p-3 text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-[#C27AFF]"
+						className={`w-full rounded border-0 bg-slate-700 p-3 text-white placeholder-gray-400 focus:outline-none focus:ring-2 ${
+							validationErrors.name
+								? 'border-2 border-red-500 focus:ring-red-500'
+								: 'focus:ring-[#C27AFF]'
+						}`}
 						placeholder="Masukkan nama penulis"
 						disabled={isLoading}
 					/>
+					{validationErrors.name && (
+						<div className="mt-1 flex items-center text-sm text-red-500">
+							<AlertCircle size={16} className="mr-1" />
+							{validationErrors.name}
+						</div>
+					)}
 				</div>
 
 				<div>
@@ -129,10 +192,20 @@ export default function FormPenulis({
 						type="email"
 						value={formData.email}
 						onChange={(e) => handleInputChange('email', e.target.value)}
-						className="w-full rounded border-0 bg-slate-700 p-3 text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-[#C27AFF]"
-						placeholder="Masukkan email penulis"
+						className={`w-full rounded border-0 bg-slate-700 p-3 text-white placeholder-gray-400 focus:outline-none focus:ring-2 ${
+							validationErrors.email
+								? 'border-2 border-red-500 focus:ring-red-500'
+								: 'focus:ring-[#C27AFF]'
+						}`}
+						placeholder="Contoh: penulis@email.com"
 						disabled={isLoading}
 					/>
+					{validationErrors.email && (
+						<div className="mt-1 flex items-center text-sm text-red-500">
+							<AlertCircle size={16} className="mr-1" />
+							{validationErrors.email}
+						</div>
+					)}
 				</div>
 
 				<button

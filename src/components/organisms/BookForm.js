@@ -36,14 +36,6 @@ export default function CompleteBookForm({
 	});
 
 	// Validation functions
-	const validateGenre = (value) => {
-		// Genre should only contain letters and spaces
-		if (value && !/^[a-zA-Z\s]+$/.test(value)) {
-			return 'Genre hanya boleh berisi huruf dan spasi';
-		}
-		return '';
-	};
-
 	const validateAuthor = (value) => {
 		// Author names can contain letters, spaces, and some special characters used in names
 		if (value && !/^[a-zA-Z\s\-'.]+$/.test(value)) {
@@ -52,18 +44,18 @@ export default function CompleteBookForm({
 		return '';
 	};
 
-	const validateYear = (value) => {
-		// Year should only contain digits
-		if (value && !/^\d+$/.test(value)) {
-			return 'Tahun hanya boleh berisi angka';
+	const validatePublisher = (value) => {
+		// Name should only contain letters, spaces, and common punctuation for publisher names
+		if (value && !/^[a-zA-Z\s\-'.&()!?]+$/.test(value)) {
+			return 'Nama penerbit hanya boleh berisi huruf, spasi, dan tanda baca umum -\'.&(),!?';
 		}
 		return '';
 	};
 
 	const validatePages = (value) => {
-		// Pages should be a positive number
-		if (value && (!/^\d+$/.test(value) || parseInt(value) <= 0)) {
-			return 'Jumlah halaman harus berupa angka positif';
+		// Hanya angka positif, tanpa huruf, spasi, simbol, atau karakter lain
+		if (!/^[0-9]+$/.test(value) || parseInt(value, 10) <= 0) {
+			return 'Harus berupa angka bulat positif';
 		}
 		return '';
 	};
@@ -191,14 +183,11 @@ export default function CompleteBookForm({
 		// Validate input based on field type
 		let validationError = '';
 		switch (field) {
-			case 'genre':
-				validationError = validateGenre(value);
-				break;
-			case 'year':
-				validationError = validateYear(value);
-				break;
 			case 'pages':
 				validationError = validatePages(value);
+				break;
+			case 'publisher':
+				validationError = validatePublisher(value);
 				break;
 			default:
 				break;
@@ -271,16 +260,14 @@ export default function CompleteBookForm({
 		// Validate all fields before submission
 		const errors = {
 			title: !formData.title ? 'Judul buku wajib diisi' : '',
-			genre: !formData.genre
-				? 'Genre wajib diisi'
-				: validateGenre(formData.genre),
-			year: !formData.year
-				? 'Tahun terbit wajib diisi'
-				: validateYear(formData.year),
+			genre: !formData.genre ? 'Genre wajib diisi' : '',
+			year: !formData.year ? 'Tahun terbit wajib diisi' : '',
 			pages: !formData.pages
 				? 'Jumlah halaman wajib diisi'
 				: validatePages(formData.pages),
-			publisher: !formData.publisher ? 'Penerbit wajib diisi' : '',
+			publisher: !formData.publisher
+				? 'Penerbit wajib diisi'
+				: validatePublisher(formData.publisher),
 			authors: [],
 		};
 
