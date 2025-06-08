@@ -80,7 +80,7 @@ export default function MainPenulis() {
 
 	return (
 		<>
-			<div className="container my-14 flex-col space-y-8 rounded-2xl bg-[#1E2939] px-9 pb-6 pt-9">
+			<div className="container my-16 flex-col space-y-8 rounded-2xl bg-[#1E2939] px-9 pb-6 pt-9">
 				<div className="flex items-end justify-between">
 					<LeftUtils
 						onAddClick={openModal}

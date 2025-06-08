@@ -66,7 +66,7 @@ export default function DetailPenerbit({ publisherId, onClose }) {
 								<h3 className="mb-2 text-lg font-semibold text-gray-300">
 									No. Telepon
 								</h3>
-								<p className="text-gray-400">
+								<p className={publisher.no_telpon ? "rounded bg-slate-700 px-3 py-1" : "text-gray-400"}>
 									{publisher.no_telpon || 'Tidak ada nomor telepon'}
 								</p>
 							</div>
@@ -76,7 +76,7 @@ export default function DetailPenerbit({ publisherId, onClose }) {
 							<h3 className="mb-2 text-lg font-semibold text-gray-300">
 								Alamat
 							</h3>
-							<p className="text-gray-400">
+							<p className={publisher.alamat_penerbit ? "rounded bg-slate-700 px-3 py-1" : "text-gray-400"}>
 								{publisher.alamat_penerbit || 'Tidak ada alamat'}
 							</p>
 						</div>
