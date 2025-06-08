@@ -66,7 +66,7 @@ export default function DetailPenulis({ authorId, onClose }) {
 								<h3 className="mb-2 text-lg font-semibold text-gray-300">
 									Email
 								</h3>
-								<p className="rounded bg-slate-700 px-3 py-1">
+								<p className="text-gray-400">
 									{author.email || 'Tidak ada email'}
 								</p>
 							</div>

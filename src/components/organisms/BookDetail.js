@@ -16,22 +16,22 @@ export default function BookDetail({ itemId, onClose }) {
 					.from('Buku')
 					.select(
 						`
-            id,
-            judul,
-            genre,
-            tahun_terbit,
-            jumlah_halaman,
-            deskripsi,
-            penerbit_id,
-            Penerbit (
-              nama_penerbit
-            ),
-            Buku_Penulis (
-              Penulis (
-                nama_penulis
-              )
-            )
-          `
+			id,
+			judul,
+			genre,
+			tahun_terbit,
+			jumlah_halaman,
+			deskripsi,
+			penerbit_id,
+			Penerbit (
+			  nama_penerbit
+			),
+			Buku_Penulis (
+			  Penulis (
+				nama_penulis
+			  )
+			)
+		  `
 					)
 					.eq('id', itemId)
 					.single();
@@ -138,16 +138,18 @@ export default function BookDetail({ itemId, onClose }) {
 							<p className="rounded bg-slate-700 px-3 py-1">{book.penerbit}</p>
 						</div>
 
-						{book.deskripsi && (
-							<div>
-								<h3 className="mb-2 text-lg font-semibold text-gray-300">
-									Deskripsi
-								</h3>
+						<div>
+							<h3 className="mb-2 text-lg font-semibold text-gray-300">
+								Deskripsi
+							</h3>
+							{book.deskripsi ? (
 								<p className="whitespace-pre-line rounded bg-slate-700 p-4">
 									{book.deskripsi}
 								</p>
-							</div>
-						)}
+							) : (
+								<p className="text-gray-400">Tidak ada deskripsi</p>
+							)}
+						</div>
 					</div>
 				) : (
 					<p className="text-center">Buku tidak ditemukan</p>

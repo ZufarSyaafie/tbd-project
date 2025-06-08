@@ -1,5 +1,5 @@
 'use client';
-import { X } from 'lucide-react';
+import { X, AlertCircle } from 'lucide-react';
 import { useState, useEffect } from 'react';
 import { supabase } from '@/lib/supabase';
 
@@ -11,29 +11,121 @@ export default function FormPenerbit({
 	const [formData, setFormData] = useState({
 		name: '',
 		address: '',
+		countryCode: '+62',
 		phone: '',
 	});
 	const [isLoading, setIsLoading] = useState(false);
 	const [error, setError] = useState('');
 
+	// Country codes data
+	const countryCodes = [
+		{ code: '+62', country: 'Indonesia', flag: '🇮🇩' },
+		{ code: '+60', country: 'Malaysia', flag: '🇲🇾' },
+		{ code: '+65', country: 'Singapore', flag: '🇸🇬' },
+		{ code: '+66', country: 'Thailand', flag: '🇹🇭' },
+		{ code: '+84', country: 'Vietnam', flag: '🇻🇳' },
+		{ code: '+63', country: 'Philippines', flag: '🇵🇭' },
+		{ code: '+1', country: 'USA/Canada', flag: '🇺🇸' },
+		{ code: '+44', country: 'UK', flag: '🇬🇧' },
+		{ code: '+49', country: 'Germany', flag: '🇩🇪' },
+		{ code: '+33', country: 'France', flag: '🇫🇷' },
+		{ code: '+81', country: 'Japan', flag: '🇯🇵' },
+		{ code: '+82', country: 'South Korea', flag: '🇰🇷' },
+		{ code: '+86', country: 'China', flag: '🇨🇳' },
+		{ code: '+91', country: 'India', flag: '🇮🇳' },
+		{ code: '+61', country: 'Australia', flag: '🇦🇺' },
+	];
+
+	// New state for validation errors
+	const [validationErrors, setValidationErrors] = useState({
+		name: '',
+		phone: '',
+	});
+
+	// Validation functions
+	const validateName = (value) => {
+		// Name should only contain letters, spaces, and common punctuation for publisher names
+		if (value && !/^[a-zA-Z\s\-'.&(),]+$/.test(value)) {
+			return 'Nama penerbit hanya boleh berisi huruf, spasi, dan tanda baca umum (-\'.&(),)';
+		}
+		return '';
+	};
+
+	const validatePhone = (value) => {
+		if (value && !/^[\d\-]+$/.test(value)) {
+			return 'Nomor telepon hanya boleh berisi angka dan tanda hubung (tanpa spasi)';
+		}
+		const digitsOnly = value.replace(/\D/g, '');
+		if (value && (digitsOnly.length < 6 || digitsOnly.length > 12)) {
+			return 'Nomor telepon harus memiliki 6-12 digit';
+		}
+	
+		return '';
+	};
+	
+
 	// Populate form jika edit
 	useEffect(() => {
 		if (publisherToEdit) {
+			// Parse phone number to separate country code and local number
+			let countryCode = '+62';
+			let localPhone = publisherToEdit.no_telpon || '';
+			
+			if (publisherToEdit.no_telpon) {
+				// Try to extract country code from existing phone number
+				const phoneStr = publisherToEdit.no_telpon.replace(/\s/g, '');
+				const matchedCode = countryCodes.find(cc => phoneStr.startsWith(cc.code));
+				if (matchedCode) {
+					countryCode = matchedCode.code;
+					localPhone = phoneStr.substring(matchedCode.code.length);
+				}
+			}
+
 			setFormData({
 				name: publisherToEdit.nama_penerbit || '',
 				address: publisherToEdit.alamat_penerbit || '',
-				phone: publisherToEdit.no_telpon || '',
+				countryCode: countryCode,
+				phone: localPhone,
 			});
 		}
 	}, [publisherToEdit]);
 
 	const handleInputChange = (field, value) => {
 		setFormData((prev) => ({ ...prev, [field]: value }));
+
+		// Validate input based on field type
+		let validationError = '';
+		switch (field) {
+			case 'name':
+				validationError = validateName(value);
+				break;
+			case 'phone':
+				validationError = validatePhone(value);
+				break;
+			default:
+				break;
+		}
+
+		// Update validation errors
+		setValidationErrors((prev) => ({
+			...prev,
+			[field]: validationError,
+		}));
 	};
 
 	const handleSubmit = async () => {
-		if (!formData.name) {
-			alert('Nama penerbit wajib diisi');
+		// Validate all fields before submission
+		const errors = {
+			name: !formData.name ? 'Nama penerbit wajib diisi' : validateName(formData.name),
+			phone: formData.phone ? validatePhone(formData.phone) : '',
+		};
+
+		// Check if we have any validation errors
+		const hasErrors = Object.values(errors).some(err => err !== '');
+
+		if (hasErrors) {
+			setValidationErrors(errors);
+			alert('Ada kesalahan pada form. Silakan periksa kembali input Anda.');
 			return;
 		}
 
@@ -41,6 +133,9 @@ export default function FormPenerbit({
 		setError('');
 
 		try {
+			// Combine country code and phone number
+			const fullPhoneNumber = formData.phone ? `${formData.countryCode} ${formData.phone}` : null;
+
 			if (publisherToEdit) {
 				// Update penerbit
 				const { error } = await supabase
@@ -48,7 +143,7 @@ export default function FormPenerbit({
 					.update({
 						nama_penerbit: formData.name,
 						alamat_penerbit: formData.address || null,
-						no_telpon: formData.phone || null,
+						no_telpon: fullPhoneNumber,
 					})
 					.eq('id', publisherToEdit.id);
 
@@ -60,7 +155,7 @@ export default function FormPenerbit({
 					{
 						nama_penerbit: formData.name,
 						alamat_penerbit: formData.address || null,
-						no_telpon: formData.phone || null,
+						no_telpon: fullPhoneNumber,
 					},
 				]);
 
@@ -69,7 +164,8 @@ export default function FormPenerbit({
 			}
 
 			// Reset form
-			setFormData({ name: '', address: '', phone: '' });
+			setFormData({ name: '', address: '', countryCode: '+62', phone: '' });
+			setValidationErrors({ name: '', phone: '' });
 
 			// Callback ke parent
 			if (onPublisherAdded) onPublisherAdded();
@@ -113,16 +209,26 @@ export default function FormPenerbit({
 			<div className="space-y-4 p-6 text-white">
 				<div>
 					<label className="mb-2 block text-lg font-semibold text-gray-300">
-						Nama Penerbit:
+						Nama Penerbit: <span className="text-red-500">*</span>
 					</label>
 					<input
 						type="text"
 						value={formData.name}
 						onChange={(e) => handleInputChange('name', e.target.value)}
-						className="w-full rounded border-0 bg-slate-700 p-3 text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-[#C27AFF]"
+						className={`w-full rounded border-0 bg-slate-700 p-3 text-white placeholder-gray-400 focus:outline-none focus:ring-2 ${
+							validationErrors.name
+								? 'border-2 border-red-500 focus:ring-red-500'
+								: 'focus:ring-[#C27AFF]'
+						}`}
 						placeholder="Masukkan nama penerbit"
 						disabled={isLoading}
 					/>
+					{validationErrors.name && (
+						<div className="mt-1 flex items-center text-sm text-red-500">
+							<AlertCircle size={16} className="mr-1" />
+							{validationErrors.name}
+						</div>
+					)}
 				</div>
 
 				<div>
@@ -143,14 +249,46 @@ export default function FormPenerbit({
 					<label className="mb-2 block text-lg font-semibold text-gray-300">
 						No. Telepon:
 					</label>
-					<input
-						type="tel"
-						value={formData.phone}
-						onChange={(e) => handleInputChange('phone', e.target.value)}
-						className="w-full rounded border-0 bg-slate-700 p-3 text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-[#C27AFF]"
-						placeholder="Masukkan nomor telepon"
-						disabled={isLoading}
-					/>
+					<div className="flex gap-2">
+						{/* Country Code Dropdown */}
+						<select
+							value={formData.countryCode}
+							onChange={(e) => handleInputChange('countryCode', e.target.value)}
+							className="rounded border-0 bg-slate-700 p-3 text-white focus:outline-none focus:ring-2 focus:ring-[#C27AFF]"
+							disabled={isLoading}
+						>
+							{countryCodes.map((country) => (
+								<option key={country.code} value={country.code}>
+									{country.flag} {country.code}
+								</option>
+							))}
+						</select>
+						
+						{/* Phone Number Input */}
+						<input
+							type="tel"
+							value={formData.phone}
+							onChange={(e) => handleInputChange('phone', e.target.value)}
+							className={`flex-1 rounded border-0 bg-slate-700 p-3 text-white placeholder-gray-400 focus:outline-none focus:ring-2 ${
+								validationErrors.phone
+									? 'border-2 border-red-500 focus:ring-red-500'
+									: 'focus:ring-[#C27AFF]'
+							}`}
+							placeholder="Contoh: 21 1234567 atau 81234567890"
+							disabled={isLoading}
+						/>
+					</div>
+					{validationErrors.phone && (
+						<div className="mt-1 flex items-center text-sm text-red-500">
+							<AlertCircle size={16} className="mr-1" />
+							{validationErrors.phone}
+						</div>
+					)}
+					{formData.phone && !validationErrors.phone && (
+						<div className="mt-1 text-sm text-gray-400">
+							Nomor lengkap: {formData.countryCode} {formData.phone}
+						</div>
+					)}
 				</div>
 
 				<button
