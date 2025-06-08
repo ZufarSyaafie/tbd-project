@@ -52,10 +52,10 @@ export default function CompleteBookForm({
 		return '';
 	};
 
-	const validateYear = (value) => {
-		// Year should only contain digits
-		if (value && !/^\d+$/.test(value)) {
-			return 'Tahun hanya boleh berisi angka';
+	const validatePublisher = (value) => {
+		// Name should only contain letters, spaces, and common punctuation for publisher names
+		if (value && !/^[a-zA-Z\s\-'.&()!?]+$/.test(value)) {
+			return "Nama penerbit hanya boleh berisi huruf, spasi, dan tanda baca umum -'.&(),!?";
 		}
 		return '';
 	};
@@ -438,7 +438,7 @@ export default function CompleteBookForm({
 	};
 
 	return (
-		<div className="w-full max-w-lg overflow-hidden rounded-lg bg-slate-800 shadow-2xl">
+		<div className="flex max-h-[85vh] w-full max-w-lg flex-col overflow-hidden rounded-lg bg-slate-800 shadow-2xl">
 			{/* Header */}
 			<div className="flex items-center justify-between bg-[#C27AFF] px-6 py-4">
 				<h2 className="text-2xl font-bold text-white">
@@ -456,243 +456,253 @@ export default function CompleteBookForm({
 			{/* Error Message */}
 			{error && <div className="bg-red-600 px-6 py-2 text-white">{error}</div>}
 
-			{/* Form */}
-			<div className="space-y-4 p-6 text-white">
-				<div>
-					<label className="mb-2 block text-lg font-semibold text-gray-300">
-						Judul: <span className="text-red-500">*</span>
-					</label>
-					<input
-						type="text"
-						value={formData.title}
-						onChange={(e) => handleInputChange('title', e.target.value)}
-						className={`w-full rounded border-0 bg-slate-700 p-3 text-white placeholder-gray-400 focus:outline-none focus:ring-2 ${
-							validationErrors.title
-								? 'border-2 border-red-500 focus:ring-red-500'
-								: 'focus:ring-[#C27AFF]'
-						}`}
-						placeholder="Masukkan judul buku"
-						disabled={isLoading}
-					/>
-					{validationErrors.title && (
-						<div className="mt-1 flex items-center text-sm text-red-500">
-							<AlertCircle size={16} className="mr-1" />
-							{validationErrors.title}
-						</div>
-					)}
-				</div>
-
-				<div className="grid grid-cols-3 gap-4">
-					<div>
-						<label className="mb-2 block text-lg font-semibold text-gray-300">
-							Genre: <span className="text-red-500">*</span>
-						</label>
-						<select
-							value={formData.genre}
-							onChange={(e) => handleInputChange('genre', e.target.value)}
-							className={`w-full rounded border-0 bg-slate-700 p-3 text-white focus:outline-none focus:ring-2 ${
-								validationErrors.genre
-									? 'border-2 border-red-500 focus:ring-red-500'
-									: 'focus:ring-[#C27AFF]'
-							}`}
-							disabled={isLoading}
-						>
-							<option value="">Pilih Genre</option>
-							{genreOptions.map((g) => (
-								<option key={g} value={g}>
-									{g}
-								</option>
-							))}
-						</select>
-						{validationErrors.genre && (
-							<div className="mt-1 flex items-center text-sm text-red-500">
-								<AlertCircle size={16} className="mr-1" />
-								{validationErrors.genre}
-							</div>
-						)}
-					</div>
+			{/* Scrollable Form Content */}
+			<div className="overflow-y-auto p-6 text-white">
+				<div className="space-y-3">
+					{/* Form fields - make spacing more compact with space-y-3 */}
 
 					<div>
-						<label className="mb-2 block text-lg font-semibold text-gray-300">
-							Tahun: <span className="text-red-500">*</span>
-						</label>
-						<select
-							value={formData.year}
-							onChange={(e) => handleInputChange('year', e.target.value)}
-							className={`w-full rounded border-0 bg-slate-700 p-3 text-white focus:outline-none focus:ring-2 ${
-								validationErrors.year
-									? 'border-2 border-red-500 focus:ring-red-500'
-									: 'focus:ring-[#C27AFF]'
-							}`}
-							disabled={isLoading}
-						>
-							<option value="">Pilih Tahun</option>
-							{yearOptions.map((y) => (
-								<option key={y} value={y}>
-									{y}
-								</option>
-							))}
-						</select>
-						{validationErrors.year && (
-							<div className="mt-1 flex items-center text-sm text-red-500">
-								<AlertCircle size={16} className="mr-1" />
-								{validationErrors.year}
-							</div>
-						)}
-					</div>
-
-					<div>
-						<label className="mb-2 block text-lg font-semibold text-gray-300">
-							Halaman: <span className="text-red-500">*</span>
+						<label className="mb-1 block text-lg font-semibold text-gray-300">
+							Judul: <span className="text-red-500">*</span>
 						</label>
 						<input
-							type="number"
-							min="1"
-							value={formData.pages}
-							onChange={(e) => handleInputChange('pages', e.target.value)}
-							className={`w-full rounded border-0 bg-slate-700 p-3 text-white placeholder-gray-400 focus:outline-none focus:ring-2 ${
-								validationErrors.pages
+							type="text"
+							value={formData.title}
+							onChange={(e) => handleInputChange('title', e.target.value)}
+							className={`w-full rounded border-0 bg-slate-700 p-2.5 text-white placeholder-gray-400 focus:outline-none focus:ring-2 ${
+								validationErrors.title
 									? 'border-2 border-red-500 focus:ring-red-500'
 									: 'focus:ring-[#C27AFF]'
 							}`}
-							placeholder="Jumlah"
+							placeholder="Masukkan judul buku"
 							disabled={isLoading}
 						/>
-						{validationErrors.pages && (
+						{validationErrors.title && (
 							<div className="mt-1 flex items-center text-sm text-red-500">
 								<AlertCircle size={16} className="mr-1" />
-								{validationErrors.pages}
+								{validationErrors.title}
 							</div>
 						)}
 					</div>
-				</div>
 
-				{/* Modified AuthorField component call */}
-				<div>
-					<label className="mb-2 block text-lg font-semibold text-gray-300">
-						Penulis: <span className="text-red-500">*</span>
-					</label>
-
-					{validationErrors.authorGeneral && (
-						<div className="mb-2 flex items-center text-sm text-red-500">
-							<AlertCircle size={16} className="mr-1" />
-							{validationErrors.authorGeneral}
-						</div>
-					)}
-
-					{authors.map((author, index) => (
-						<div key={index} className="mb-2 flex items-center">
-							<input
-								type="text"
-								value={author}
-								onChange={(e) => handleAuthorChange(index, e.target.value)}
-								list={`author-options-${index}`}
-								className={`w-full rounded border-0 bg-slate-700 p-3 text-white placeholder-gray-400 focus:outline-none focus:ring-2 ${
-									validationErrors.authors?.[index]
+					{/* Grid layout for compact form fields */}
+					<div className="grid grid-cols-1 gap-3 md:grid-cols-3">
+						<div>
+							<label className="mb-1 block text-lg font-semibold text-gray-300">
+								Genre: <span className="text-red-500">*</span>
+							</label>
+							<select
+								value={formData.genre}
+								onChange={(e) => handleInputChange('genre', e.target.value)}
+								className={`w-full rounded border-0 bg-slate-700 p-2.5 text-white focus:outline-none focus:ring-2 ${
+									validationErrors.genre
 										? 'border-2 border-red-500 focus:ring-red-500'
 										: 'focus:ring-[#C27AFF]'
 								}`}
-								placeholder="Nama penulis"
 								disabled={isLoading}
-							/>
-
-							<datalist id={`author-options-${index}`}>
-								{existingAuthors.map((existingAuthor) => (
-									<option key={existingAuthor} value={existingAuthor} />
+							>
+								<option value="">Pilih Genre</option>
+								{genreOptions.map((g) => (
+									<option key={g} value={g}>
+										{g}
+									</option>
 								))}
-							</datalist>
-
-							{index === authors.length - 1 ? (
-								<button
-									type="button"
-									onClick={() => setAuthors([...authors, ''])}
-									className="ml-2 rounded bg-blue-500 p-3 text-white transition-colors hover:bg-blue-600 disabled:opacity-50"
-									disabled={isLoading}
-								>
-									<Plus size={20} />
-								</button>
-							) : (
-								<button
-									type="button"
-									onClick={() => {
-										const newAuthors = [...authors];
-										newAuthors.splice(index, 1);
-										setAuthors(newAuthors);
-
-										const newErrors = [...validationErrors.authors];
-										newErrors.splice(index, 1);
-										setValidationErrors({
-											...validationErrors,
-											authors: newErrors,
-										});
-									}}
-									className="ml-2 rounded bg-red-500 p-3 text-white transition-colors hover:bg-red-600 disabled:opacity-50"
-									disabled={isLoading}
-								>
-									<X size={20} />
-								</button>
+							</select>
+							{validationErrors.genre && (
+								<div className="mt-1 flex items-center text-sm text-red-500">
+									<AlertCircle size={16} className="mr-1" />
+									{validationErrors.genre}
+								</div>
 							)}
 						</div>
-					))}
 
-					{authors.map(
-						(_, index) =>
-							validationErrors.authors?.[index] && (
-								<div
-									key={`error-${index}`}
-									className="mt-1 flex items-center text-sm text-red-500"
-								>
+						<div>
+							<label className="mb-1 block text-lg font-semibold text-gray-300">
+								Tahun: <span className="text-red-500">*</span>
+							</label>
+							<select
+								value={formData.year}
+								onChange={(e) => handleInputChange('year', e.target.value)}
+								className={`w-full rounded border-0 bg-slate-700 p-2.5 text-white focus:outline-none focus:ring-2 ${
+									validationErrors.year
+										? 'border-2 border-red-500 focus:ring-red-500'
+										: 'focus:ring-[#C27AFF]'
+								}`}
+								disabled={isLoading}
+							>
+								<option value="">Pilih Tahun</option>
+								{yearOptions.map((y) => (
+									<option key={y} value={y}>
+										{y}
+									</option>
+								))}
+							</select>
+							{validationErrors.year && (
+								<div className="mt-1 flex items-center text-sm text-red-500">
 									<AlertCircle size={16} className="mr-1" />
-									{validationErrors.authors[index]}
+									{validationErrors.year}
 								</div>
-							)
-					)}
-				</div>
-
-				<div>
-					<label className="mb-2 block text-lg font-semibold text-gray-300">
-						Penerbit: <span className="text-red-500">*</span>
-					</label>
-					<input
-						type="text"
-						list="publisher-options"
-						value={formData.publisher}
-						onChange={(e) => handleInputChange('publisher', e.target.value)}
-						className={`w-full rounded border-0 bg-slate-700 p-3 text-white placeholder-gray-400 focus:outline-none focus:ring-2 ${
-							validationErrors.publisher
-								? 'border-2 border-red-500 focus:ring-red-500'
-								: 'focus:ring-[#C27AFF]'
-						}`}
-						placeholder="Nama penerbit"
-						disabled={isLoading}
-					/>
-					<datalist id="publisher-options">
-						{existingPublishers.map((publisher) => (
-							<option key={publisher} value={publisher} />
-						))}
-					</datalist>
-					{validationErrors.publisher && (
-						<div className="mt-1 flex items-center text-sm text-red-500">
-							<AlertCircle size={16} className="mr-1" />
-							{validationErrors.publisher}
+							)}
 						</div>
-					)}
-				</div>
 
-				<div>
-					<label className="mb-2 block text-lg font-semibold text-gray-300">
-						Deskripsi:
-					</label>
-					<textarea
-						value={formData.description}
-						onChange={(e) => handleInputChange('description', e.target.value)}
-						className="w-full resize-none rounded border-0 bg-slate-700 p-3 text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-[#C27AFF]"
-						rows={4}
-						placeholder="Deskripsi singkat tentang buku..."
-						disabled={isLoading}
-					/>
-				</div>
+						<div>
+							<label className="mb-1 block text-lg font-semibold text-gray-300">
+								Halaman: <span className="text-red-500">*</span>
+							</label>
+							<input
+								type="number"
+								min="1"
+								value={formData.pages}
+								onChange={(e) => handleInputChange('pages', e.target.value)}
+								className={`w-full rounded border-0 bg-slate-700 p-2.5 text-white placeholder-gray-400 focus:outline-none focus:ring-2 ${
+									validationErrors.pages
+										? 'border-2 border-red-500 focus:ring-red-500'
+										: 'focus:ring-[#C27AFF]'
+								}`}
+								placeholder="Jumlah"
+								disabled={isLoading}
+							/>
+							{validationErrors.pages && (
+								<div className="mt-1 flex items-center text-sm text-red-500">
+									<AlertCircle size={16} className="mr-1" />
+									{validationErrors.pages}
+								</div>
+							)}
+						</div>
+					</div>
 
+					{/* Authors section */}
+					<div>
+						<label className="mb-1 block text-lg font-semibold text-gray-300">
+							Penulis: <span className="text-red-500">*</span>
+						</label>
+
+						{validationErrors.authorGeneral && (
+							<div className="mb-2 flex items-center text-sm text-red-500">
+								<AlertCircle size={16} className="mr-1" />
+								{validationErrors.authorGeneral}
+							</div>
+						)}
+
+						{authors.map((author, index) => (
+							<div key={index} className="mb-2 flex items-center">
+								<input
+									type="text"
+									value={author}
+									onChange={(e) => handleAuthorChange(index, e.target.value)}
+									list={`author-options-${index}`}
+									className={`w-full rounded border-0 bg-slate-700 p-2.5 text-white placeholder-gray-400 focus:outline-none focus:ring-2 ${
+										validationErrors.authors?.[index]
+											? 'border-2 border-red-500 focus:ring-red-500'
+											: 'focus:ring-[#C27AFF]'
+									}`}
+									placeholder="Nama penulis"
+									disabled={isLoading}
+								/>
+
+								<datalist id={`author-options-${index}`}>
+									{existingAuthors.map((existingAuthor) => (
+										<option key={existingAuthor} value={existingAuthor} />
+									))}
+								</datalist>
+
+								{index === authors.length - 1 ? (
+									<button
+										type="button"
+										onClick={() => setAuthors([...authors, ''])}
+										className="ml-2 rounded bg-blue-500 p-3 text-white transition-colors hover:bg-blue-600 disabled:opacity-50"
+										disabled={isLoading}
+									>
+										<Plus size={20} />
+									</button>
+								) : (
+									<button
+										type="button"
+										onClick={() => {
+											const newAuthors = [...authors];
+											newAuthors.splice(index, 1);
+											setAuthors(newAuthors);
+
+											const newErrors = [...validationErrors.authors];
+											newErrors.splice(index, 1);
+											setValidationErrors({
+												...validationErrors,
+												authors: newErrors,
+											});
+										}}
+										className="ml-2 rounded bg-red-500 p-3 text-white transition-colors hover:bg-red-600 disabled:opacity-50"
+										disabled={isLoading}
+									>
+										<X size={20} />
+									</button>
+								)}
+							</div>
+						))}
+
+						{authors.map(
+							(_, index) =>
+								validationErrors.authors?.[index] && (
+									<div
+										key={`error-${index}`}
+										className="mt-1 flex items-center text-sm text-red-500"
+									>
+										<AlertCircle size={16} className="mr-1" />
+										{validationErrors.authors[index]}
+									</div>
+								)
+						)}
+					</div>
+
+					{/* Publisher field */}
+					<div>
+						<label className="mb-1 block text-lg font-semibold text-gray-300">
+							Penerbit: <span className="text-red-500">*</span>
+						</label>
+						<input
+							type="text"
+							list="publisher-options"
+							value={formData.publisher}
+							onChange={(e) => handleInputChange('publisher', e.target.value)}
+							className={`w-full rounded border-0 bg-slate-700 p-2.5 text-white placeholder-gray-400 focus:outline-none focus:ring-2 ${
+								validationErrors.publisher
+									? 'border-2 border-red-500 focus:ring-red-500'
+									: 'focus:ring-[#C27AFF]'
+							}`}
+							placeholder="Nama penerbit"
+							disabled={isLoading}
+						/>
+						<datalist id="publisher-options">
+							{existingPublishers.map((publisher) => (
+								<option key={publisher} value={publisher} />
+							))}
+						</datalist>
+						{validationErrors.publisher && (
+							<div className="mt-1 flex items-center text-sm text-red-500">
+								<AlertCircle size={16} className="mr-1" />
+								{validationErrors.publisher}
+							</div>
+						)}
+					</div>
+
+					{/* Description field - make it smaller */}
+					<div>
+						<label className="mb-1 block text-lg font-semibold text-gray-300">
+							Deskripsi:
+						</label>
+						<textarea
+							value={formData.description}
+							onChange={(e) => handleInputChange('description', e.target.value)}
+							className="w-full resize-none rounded border-0 bg-slate-700 p-2.5 text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-[#C27AFF]"
+							rows={3} // Reduced from 4 to 3
+							placeholder="Deskripsi singkat tentang buku..."
+							disabled={isLoading}
+						/>
+					</div>
+				</div>
+			</div>
+
+			{/* Save button - keep at bottom */}
+			<div className="bg-slate-800 p-6 pt-3">
 				<button
 					onClick={handleSubmit}
 					disabled={isLoading}

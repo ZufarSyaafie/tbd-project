@@ -73,7 +73,7 @@ export default function BookDetail({ itemId, onClose }) {
 	};
 
 	return (
-		<div className="w-full max-w-2xl overflow-hidden rounded-lg bg-slate-800 shadow-2xl">
+		<div className="flex max-h-[85vh] w-full max-w-2xl flex-col overflow-hidden rounded-lg bg-slate-800 shadow-2xl">
 			{/* Header */}
 			<div className="flex items-center justify-between bg-[#00BCFF] px-6 py-4">
 				<h2 className="text-2xl font-bold text-white">DETAIL BUKU</h2>
@@ -86,8 +86,8 @@ export default function BookDetail({ itemId, onClose }) {
 				</button>
 			</div>
 
-			{/* Content */}
-			<div className="p-6 text-white">
+			{/* Content - make scrollable */}
+			<div className="overflow-y-auto p-6 text-white">
 				{loading ? (
 					<div className="flex justify-center py-8">
 						<div className="h-8 w-8 animate-spin rounded-full border-b-2 border-r-2 border-[#00BCFF]"></div>
