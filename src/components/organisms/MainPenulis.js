@@ -74,6 +74,14 @@ export default function MainPenulis() {
 		[totalPages]
 	);
 
+	// Config untuk Writer Page - tanpa filter
+	const writerConfig = {
+		showAddButton: true,
+		showItemsPerPage: true,
+		showFilter: false, // Filter disabled untuk writer
+		showRefresh: true,
+	};
+
 	const startIndex =
 		totalItems === 0 ? 0 : (currentPage - 1) * itemsPerPage + 1;
 	const endIndex = Math.min(currentPage * itemsPerPage, totalItems);
@@ -88,6 +96,7 @@ export default function MainPenulis() {
 						isRefreshing={isRefreshing || isChangingItemsPerPage}
 						itemsPerPage={itemsPerPage}
 						onItemsPerPageChange={handleItemsPerPageChange}
+						config={writerConfig}
 					/>
 					<div className="text-5xl font-semibold text-[#99a1af]">
 						Daftar Penulis

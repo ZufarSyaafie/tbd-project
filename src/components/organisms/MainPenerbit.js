@@ -74,6 +74,14 @@ export default function MainPenerbit() {
 		[totalPages]
 	);
 
+	// Config untuk Publisher Page - tanpa filter
+	const publisherConfig = {
+		showAddButton: true,
+		showItemsPerPage: true,
+		showFilter: false, // Filter disabled untuk publisher
+		showRefresh: true,
+	};
+
 	const startIndex =
 		totalItems === 0 ? 0 : (currentPage - 1) * itemsPerPage + 1;
 	const endIndex = Math.min(currentPage * itemsPerPage, totalItems);
@@ -88,6 +96,7 @@ export default function MainPenerbit() {
 						isRefreshing={isRefreshing || isChangingItemsPerPage}
 						itemsPerPage={itemsPerPage}
 						onItemsPerPageChange={handleItemsPerPageChange}
+						config={publisherConfig}
 					/>
 					<div className="text-5xl font-semibold text-[#99a1af]">
 						Daftar Penerbit
