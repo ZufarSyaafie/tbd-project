@@ -4,21 +4,25 @@ import LeftUtils from '../molecules/LeftUtils';
 import NavigateUtils from '../molecules/NavigateUtils';
 import Table from '../molecules/Table';
 import CompleteBookForm from './BookForm';
-import BookDetail from './BookDetail'; // Import the new BookDetail component
+import BookDetail from './BookDetail';
 
 export default function Main({ children }) {
 	const [isModalOpen, setIsModalOpen] = useState(false);
-	const [isViewModalOpen, setIsViewModalOpen] = useState(false); // New state for view modal
-	const [isEditModalOpen, setIsEditModalOpen] = useState(false); // New state for edit modal
-	const [selecteditemId, setSelecteditemId] = useState(null); // Track selected book ID
-	const [selectedBookData, setSelectedBookData] = useState(null); // Track selected book data for editing
+	const [isViewModalOpen, setIsViewModalOpen] = useState(false);
+	const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+	const [selecteditemId, setSelecteditemId] = useState(null);
+	const [selectedBookData, setSelectedBookData] = useState(null);
 	const [isRefreshing, setIsRefreshing] = useState(false);
 	const refreshFunction = useRef(null);
+	const getSuggestionsFunction = useRef(null);
 	const [currentPage, setCurrentPage] = useState(1);
 	const [itemsPerPage, setItemsPerPage] = useState(25);
 	const [totalPages, setTotalPages] = useState(1);
 	const [totalItems, setTotalItems] = useState(0);
 	const [isChangingItemsPerPage, setIsChangingItemsPerPage] = useState(false);
+	
+	// Filter states
+	const [activeFilters, setActiveFilters] = useState({});
 
 	// Open add modal
 	const openModal = useCallback(() => {
@@ -68,6 +72,11 @@ export default function Main({ children }) {
 		refreshFunction.current = fn;
 	}, []);
 
+	// Callback to receive getSuggestions function from Table component
+	const setGetSuggestionsFunction = useCallback((fn) => {
+		getSuggestionsFunction.current = fn;
+	}, []);
+
 	const handleItemsPerPageChange = useCallback((newItemsPerPage) => {
 		setIsChangingItemsPerPage(true);
 
@@ -88,6 +97,28 @@ export default function Main({ children }) {
 		[totalPages, isChangingItemsPerPage]
 	);
 
+	// Filter handlers
+	const handleFilterChange = useCallback({
+		apply: (filterType, filterValue) => {
+			const newFilters = {
+				...activeFilters,
+				[filterType]: filterValue
+			};
+			setActiveFilters(newFilters);
+			setCurrentPage(1); // Reset to first page when applying filters
+		},
+		clear: () => {
+			setActiveFilters({});
+			setCurrentPage(1); // Reset to first page when clearing filters
+		},
+		getSuggestions: async (type, query) => {
+			if (getSuggestionsFunction.current) {
+				return await getSuggestionsFunction.current(type, query);
+			}
+			return [];
+		}
+	}, [activeFilters]);
+
 	// Calculate index for display
 	const startIndex =
 		totalItems === 0 ? 0 : (currentPage - 1) * itemsPerPage + 1;
@@ -104,6 +135,8 @@ export default function Main({ children }) {
 							isRefreshing={isRefreshing || isChangingItemsPerPage}
 							itemsPerPage={itemsPerPage}
 							onItemsPerPageChange={handleItemsPerPageChange}
+							onFilterChange={handleFilterChange}
+							currentFilters={activeFilters}
 						/>
 					</div>
 					<div className="text-5xl font-semibold text-[#99a1af]">
@@ -131,6 +164,8 @@ export default function Main({ children }) {
 							onTotalItemsChange={setTotalItems}
 							onViewBook={openViewModal}
 							onEditBook={openEditModal}
+							filters={activeFilters}
+							onGetSuggestions={setGetSuggestionsFunction}
 						/>
 					</div>
 				</div>
