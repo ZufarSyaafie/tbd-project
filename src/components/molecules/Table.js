@@ -1,7 +1,6 @@
 'use client';
 import React, { useState, useEffect } from 'react';
 import RowUtils from '../molecules/RowUtils';
-import { supabase } from '@/lib/supabase';
 
 export default function Table({
 	onRefresh,
@@ -12,79 +11,26 @@ export default function Table({
 	onTotalItemsChange,
 	onViewBook,
 	onEditBook,
-	filters = {}, // New prop for filters
-	onGetSuggestions, // New prop for getting suggestions
+	filters = {},
+	onGetSuggestions,
 }) {
 	const [books, setBooks] = useState([]);
 	const [loading, setLoading] = useState(true);
 	const [error, setError] = useState(null);
-	const [totalBooks, setTotalBooks] = useState(0);
 
 	// Function to get suggestions for autocomplete
 	const getSuggestions = async (type, query) => {
 		try {
-			let suggestions = [];
+			const response = await fetch(
+				`/api/books/suggestions?type=${type}&query=${encodeURIComponent(query)}`
+			);
+			const result = await response.json();
 
-			switch (type) {
-				case 'penulis':
-					// Using the view to get unique authors
-					const { data: penulisData, error: penulisError } = await supabase
-						.from('buku_detail_view')
-						.select('penulis')
-						.not('penulis', 'is', null);
-
-					if (penulisError) throw penulisError;
-
-					// Extract unique authors and filter by query
-					const allAuthors =
-						penulisData?.flatMap((book) => book.penulis || []) || [];
-					const uniqueAuthors = [...new Set(allAuthors)]
-						.filter((author) =>
-							author.toLowerCase().includes(query.toLowerCase())
-						)
-						.slice(0, 10);
-
-					suggestions = uniqueAuthors;
-					break;
-
-				case 'penerbit':
-					const { data: penerbitData, error: penerbitError } = await supabase
-						.from('buku_detail_view')
-						.select('nama_penerbit')
-						.ilike('nama_penerbit', `%${query}%`)
-						.limit(10);
-
-					if (penerbitError) throw penerbitError;
-					suggestions = [
-						...new Set(penerbitData?.map((p) => p.nama_penerbit) || []),
-					];
-					break;
-
-				case 'tahun':
-					// Get distinct years from view
-					const { data: tahunData, error: tahunError } = await supabase
-						.from('buku_detail_view')
-						.select('tahun')
-						.not('tahun', 'is', null)
-						.order('tahun', { ascending: false });
-
-					if (tahunError) throw tahunError;
-
-					// Filter years by query and remove duplicates
-					const years = [
-						...new Set(tahunData?.map((book) => book.tahun.toString()) || []),
-					]
-						.filter((year) => year.includes(query))
-						.slice(0, 10);
-
-					suggestions = years;
-					break;
-
-				default:
-					suggestions = [];
+			if (!result.success) {
+				throw new Error(result.error);
 			}
 
-			return suggestions;
+			return result.data;
 		} catch (error) {
 			console.error('Error getting suggestions:', error);
 			return [];
@@ -98,76 +44,34 @@ export default function Table({
 		}
 	}, [onGetSuggestions]);
 
-	// Build query with filters using the view
-	const buildQuery = (page = currentPage, limit = itemsPerPage) => {
-		const offset = (page - 1) * limit;
-
-		let query = supabase
-			.from('buku_detail_view')
-			.select('*', { count: 'exact' });
-
-		// Apply filters
-		if (filters.penerbit) {
-			query = query.eq('nama_penerbit', filters.penerbit);
-		}
-
-		if (filters.tahun) {
-			query = query.eq('tahun', parseInt(filters.tahun));
-		}
-
-		if (filters.penulis) {
-			// For author filter, we need to check if the author exists in the array
-			query = query.contains('penulis', [filters.penulis]);
-		}
-
-		return query
-			.range(offset, offset + limit - 1)
-			.order('buku_id', { ascending: true });
-	};
-
-	// Fungsi untuk mengambil data dari view dengan filter
+	// Fungsi untuk mengambil data dari API dengan filter
 	const fetchBooks = async (page = currentPage, limit = itemsPerPage) => {
 		try {
 			setLoading(true);
 
-			console.log('Applied filters:', filters);
-
-			// Use the view query
-			const { data, error, count: totalCount } = await buildQuery(page, limit);
-
-			if (error) throw error;
-
-			console.log('Raw data from view:', data);
-
-			// Transform data to match the original structure
-			const transformedData = (data || []).map((book) => {
-				return {
-					id: book.buku_id,
-					judul: book.judul,
-					genre: book.genre,
-					tahun_terbit: book.tahun_terbit,
-					jumlah_halaman: book.jumlah_halaman,
-					deskripsi: book.deskripsi,
-					penerbit_id: book.penerbit_id,
-					penerbit: book.nama_penerbit,
-					penulis: book.penulis?.map((nama) => ({ nama_penulis: nama })) || [],
-				};
+			// Build query params
+			const params = new URLSearchParams({
+				page: page.toString(),
+				limit: limit.toString(),
 			});
 
-			console.log('Transformed data:', transformedData);
+			// Add filters to params
+			if (filters.penerbit) params.append('penerbit', filters.penerbit);
+			if (filters.tahun) params.append('tahun', filters.tahun);
+			if (filters.penulis) params.append('penulis', filters.penulis);
 
-			setBooks(transformedData);
-			setTotalBooks(totalCount || 0);
+			const response = await fetch(`/api/books?${params.toString()}`);
+			const result = await response.json();
+
+			if (!result.success) {
+				throw new Error(result.error);
+			}
+
+			setBooks(result.data);
 
 			// Update parent component
-			if (onTotalItemsChange) {
-				onTotalItemsChange(totalCount || 0);
-			}
-
-			const totalPages = Math.ceil((totalCount || 0) / limit);
-			if (onTotalPagesChange) {
-				onTotalPagesChange(totalPages);
-			}
+			if (onTotalItemsChange) onTotalItemsChange(result.totalItems);
+			if (onTotalPagesChange) onTotalPagesChange(result.totalPages);
 
 			setLoading(false);
 		} catch (err) {
@@ -208,10 +112,15 @@ export default function Table({
 	const handleDelete = async (itemId) => {
 		if (window.confirm('Apakah Anda yakin ingin menghapus buku ini?')) {
 			try {
-				// Delete dari tabel asli (bukan view)
-				const { error } = await supabase.from('Buku').delete().eq('id', itemId);
+				const response = await fetch(`/api/books/${itemId}`, {
+					method: 'DELETE',
+				});
 
-				if (error) throw error;
+				const result = await response.json();
+
+				if (!result.success) {
+					throw new Error(result.error);
+				}
 
 				// Refresh data setelah delete
 				fetchBooks(currentPage, itemsPerPage);

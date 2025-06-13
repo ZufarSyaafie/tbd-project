@@ -1,7 +1,6 @@
 'use client';
 import { X, AlertCircle } from 'lucide-react';
 import { useState, useEffect } from 'react';
-import { supabase } from '@/lib/supabase';
 
 export default function FormPenerbit({
 	onClose,
@@ -80,7 +79,7 @@ export default function FormPenerbit({
 	const validateName = (value) => {
 		// Name should only contain letters, spaces, and common punctuation for publisher names
 		if (value && !/^[a-zA-Z\s\-'.&(),]+$/.test(value)) {
-			return 'Nama penerbit hanya boleh berisi huruf, spasi, dan tanda baca umum (-\'.&(),)';
+			return "Nama penerbit hanya boleh berisi huruf, spasi, dan tanda baca umum (-'.&(),)";
 		}
 		return '';
 	};
@@ -93,10 +92,9 @@ export default function FormPenerbit({
 		if (value && (digitsOnly.length < 6 || digitsOnly.length > 12)) {
 			return 'Nomor telepon harus memiliki 6-12 digit';
 		}
-	
+
 		return '';
 	};
-	
 
 	// Populate form jika edit
 	useEffect(() => {
@@ -104,11 +102,13 @@ export default function FormPenerbit({
 			// Parse phone number to separate country code and local number
 			let countryCode = '+62';
 			let localPhone = publisherToEdit.no_telpon || '';
-			
+
 			if (publisherToEdit.no_telpon) {
 				// Try to extract country code from existing phone number
 				const phoneStr = publisherToEdit.no_telpon.replace(/\s/g, '');
-				const matchedCode = countryCodes.find(cc => phoneStr.startsWith(cc.code));
+				const matchedCode = countryCodes.find((cc) =>
+					phoneStr.startsWith(cc.code)
+				);
 				if (matchedCode) {
 					countryCode = matchedCode.code;
 					localPhone = phoneStr.substring(matchedCode.code.length);
@@ -150,12 +150,14 @@ export default function FormPenerbit({
 	const handleSubmit = async () => {
 		// Validate all fields before submission
 		const errors = {
-			name: !formData.name ? 'Nama penerbit wajib diisi' : validateName(formData.name),
+			name: !formData.name
+				? 'Nama penerbit wajib diisi'
+				: validateName(formData.name),
 			phone: formData.phone ? validatePhone(formData.phone) : '',
 		};
 
 		// Check if we have any validation errors
-		const hasErrors = Object.values(errors).some(err => err !== '');
+		const hasErrors = Object.values(errors).some((err) => err !== '');
 
 		if (hasErrors) {
 			setValidationErrors(errors);
@@ -168,34 +170,53 @@ export default function FormPenerbit({
 
 		try {
 			// Combine country code and phone number
-			const fullPhoneNumber = formData.phone ? `${formData.countryCode} ${formData.phone}` : null;
+			const fullPhoneNumber = formData.phone
+				? `${formData.countryCode} ${formData.phone}`
+				: null;
+
+			const requestData = {
+				nama_penerbit: formData.name,
+				alamat_penerbit: formData.address || null,
+				no_telpon: fullPhoneNumber,
+			};
+
+			let response;
 
 			if (publisherToEdit) {
-				// Update penerbit
-				const { error } = await supabase
-					.from('Penerbit')
-					.update({
-						nama_penerbit: formData.name,
-						alamat_penerbit: formData.address || null,
-						no_telpon: fullPhoneNumber,
-					})
-					.eq('id', publisherToEdit.id);
-
-				if (error) throw error;
-				alert('Penerbit berhasil diperbarui!');
-			} else {
-				// Tambah penerbit baru
-				const { error } = await supabase.from('Penerbit').insert([
-					{
-						nama_penerbit: formData.name,
-						alamat_penerbit: formData.address || null,
-						no_telpon: fullPhoneNumber,
+				// Update penerbit - PUT request
+				response = await fetch(`/api/publishers/${publisherToEdit.id}`, {
+					method: 'PUT',
+					headers: {
+						'Content-Type': 'application/json',
 					},
-				]);
-
-				if (error) throw error;
-				alert('Penerbit berhasil ditambahkan!');
+					body: JSON.stringify(requestData),
+				});
+			} else {
+				// Tambah penerbit baru - POST request
+				response = await fetch('/api/publishers', {
+					method: 'POST',
+					headers: {
+						'Content-Type': 'application/json',
+					},
+					body: JSON.stringify(requestData),
+				});
 			}
+
+			const result = await response.json();
+
+			if (!response.ok) {
+				throw new Error(result.error || 'Terjadi kesalahan pada server');
+			}
+
+			if (!result.success) {
+				throw new Error(result.error || 'Operation failed');
+			}
+
+			alert(
+				publisherToEdit
+					? 'Penerbit berhasil diperbarui!'
+					: 'Penerbit berhasil ditambahkan!'
+			);
 
 			// Reset form
 			setFormData({ name: '', address: '', countryCode: '+62', phone: '' });
@@ -297,7 +318,7 @@ export default function FormPenerbit({
 								</option>
 							))}
 						</select>
-						
+
 						{/* Phone Number Input */}
 						<input
 							type="tel"

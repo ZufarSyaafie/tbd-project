@@ -1,7 +1,6 @@
 'use client';
 import { X, AlertCircle } from 'lucide-react';
 import { useState, useEffect } from 'react';
-import { supabase } from '@/lib/supabase';
 
 export default function FormPenulis({
 	onClose,
@@ -37,7 +36,7 @@ export default function FormPenulis({
 		}
 		return '';
 	};
-	
+
 	// Populate form jika edit
 	useEffect(() => {
 		if (authorToEdit) {
@@ -74,12 +73,14 @@ export default function FormPenulis({
 	const handleSubmit = async () => {
 		// Validate all fields before submission
 		const errors = {
-			name: !formData.name ? 'Nama penulis wajib diisi' : validateName(formData.name),
+			name: !formData.name
+				? 'Nama penulis wajib diisi'
+				: validateName(formData.name),
 			email: formData.email ? validateEmail(formData.email) : '',
 		};
 
 		// Check if we have any validation errors
-		const hasErrors = Object.values(errors).some(err => err !== '');
+		const hasErrors = Object.values(errors).some((err) => err !== '');
 
 		if (hasErrors) {
 			setValidationErrors(errors);
@@ -91,30 +92,48 @@ export default function FormPenulis({
 		setError('');
 
 		try {
+			const requestData = {
+				nama_penulis: formData.name,
+				email: formData.email || null,
+			};
+
+			let response;
+
 			if (authorToEdit) {
-				// Update penulis
-				const { error } = await supabase
-					.from('Penulis')
-					.update({
-						nama_penulis: formData.name,
-						email: formData.email || null,
-					})
-					.eq('id', authorToEdit.id);
-
-				if (error) throw error;
-				alert('Penulis berhasil diperbarui!');
-			} else {
-				// Tambah penulis baru
-				const { error } = await supabase.from('Penulis').insert([
-					{
-						nama_penulis: formData.name,
-						email: formData.email || null,
+				// Update penulis - PUT request
+				response = await fetch(`/api/authors/${authorToEdit.id}`, {
+					method: 'PUT',
+					headers: {
+						'Content-Type': 'application/json',
 					},
-				]);
-
-				if (error) throw error;
-				alert('Penulis berhasil ditambahkan!');
+					body: JSON.stringify(requestData),
+				});
+			} else {
+				// Tambah penulis baru - POST request
+				response = await fetch('/api/authors', {
+					method: 'POST',
+					headers: {
+						'Content-Type': 'application/json',
+					},
+					body: JSON.stringify(requestData),
+				});
 			}
+
+			const result = await response.json();
+
+			if (!response.ok) {
+				throw new Error(result.error || 'Terjadi kesalahan pada server');
+			}
+
+			if (!result.success) {
+				throw new Error(result.error || 'Operation failed');
+			}
+
+			alert(
+				authorToEdit
+					? 'Penulis berhasil diperbarui!'
+					: 'Penulis berhasil ditambahkan!'
+			);
 
 			// Reset form
 			setFormData({ name: '', email: '' });

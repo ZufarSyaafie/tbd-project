@@ -1,7 +1,6 @@
 'use client';
 import React, { useState, useEffect } from 'react';
 import RowUtils from './RowUtils';
-import { supabase } from '@/lib/supabase';
 
 export default function TabelPenerbit({
 	onRefresh,
@@ -16,38 +15,26 @@ export default function TabelPenerbit({
 	const [publishers, setPublishers] = useState([]);
 	const [loading, setLoading] = useState(true);
 	const [error, setError] = useState(null);
-	const [totalPublishers, setTotalPublishers] = useState(0);
 
-	// Fungsi untuk mengambil data penerbit dari Supabase
+	// Fungsi untuk mengambil data penerbit dari API
 	const fetchPublishers = async (page = currentPage, limit = itemsPerPage) => {
 		try {
 			setLoading(true);
-			const offset = (page - 1) * limit;
 
-			// Query untuk mendapatkan total count
-			const { count, error: countError } = await supabase
-				.from('Penerbit')
-				.select('*', { count: 'exact', head: true });
+			const response = await fetch(
+				`/api/publishers?page=${page}&limit=${limit}`
+			);
+			const result = await response.json();
 
-			if (countError) throw countError;
+			if (!result.success) {
+				throw new Error(result.error);
+			}
 
-			// Query untuk mendapatkan data dengan pagination
-			const { data, error } = await supabase
-				.from('Penerbit')
-				.select('*')
-				.range(offset, offset + limit - 1)
-				.order('id', { ascending: true });
-
-			if (error) throw error;
-
-			setPublishers(data || []);
-			setTotalPublishers(count || 0);
+			setPublishers(result.data);
 
 			// Update parent component
-			if (onTotalItemsChange) onTotalItemsChange(count || 0);
-
-			const totalPages = Math.ceil((count || 0) / limit);
-			if (onTotalPagesChange) onTotalPagesChange(totalPages);
+			if (onTotalItemsChange) onTotalItemsChange(result.totalItems);
+			if (onTotalPagesChange) onTotalPagesChange(result.totalPages);
 
 			setLoading(false);
 		} catch (err) {
@@ -72,19 +59,24 @@ export default function TabelPenerbit({
 	};
 
 	const handleEdit = (publisherId) => {
-		const publisherToEdit = publishers.find((publisher) => publisher.id === publisherId);
+		const publisherToEdit = publishers.find(
+			(publisher) => publisher.id === publisherId
+		);
 		if (publisherToEdit && onEditPublisher) onEditPublisher(publisherToEdit);
 	};
 
 	const handleDelete = async (publisherId) => {
 		if (window.confirm('Apakah Anda yakin ingin menghapus penerbit ini?')) {
 			try {
-				const { error } = await supabase
-					.from('Penerbit')
-					.delete()
-					.eq('id', publisherId);
+				const response = await fetch(`/api/publishers/${publisherId}`, {
+					method: 'DELETE',
+				});
 
-				if (error) throw error;
+				const result = await response.json();
+
+				if (!result.success) {
+					throw new Error(result.error);
+				}
 
 				fetchPublishers(currentPage, itemsPerPage);
 				alert('Penerbit berhasil dihapus!');
@@ -108,7 +100,7 @@ export default function TabelPenerbit({
 			<div className="w-full p-8 text-center">
 				<p className="text-[#FB64B6]">ERROR {error}</p>
 				<button
-					onClick={fetchPublishers}
+					onClick={() => fetchPublishers(currentPage, itemsPerPage)}
 					className="mt-2 rounded bg-[#FB64B6] px-4 py-2 text-white transition-colors duration-300 hover:bg-[#FF008A]"
 				>
 					Coba Lagi
@@ -139,7 +131,9 @@ export default function TabelPenerbit({
 						publishers.map((publisher) => (
 							<tr key={publisher.id} className="border-t-2 border-[#334155]">
 								<td className="px-4 py-3">{publisher.nama_penerbit}</td>
-								<td className="px-4 py-3">{publisher.alamat_penerbit || '-'}</td>
+								<td className="px-4 py-3">
+									{publisher.alamat_penerbit || '-'}
+								</td>
 								<td className="px-4 py-3">{publisher.no_telpon || '-'}</td>
 								<td className="w-1.5 px-4 py-3">
 									<RowUtils

@@ -1,7 +1,7 @@
 'use client';
 import { X } from 'lucide-react';
 import { useState, useEffect } from 'react';
-import { supabase } from '@/lib/supabase';
+import { bookApi } from '@/lib/api';
 
 export default function BookDetail({ itemId, onClose }) {
 	const [book, setBook] = useState(null);
@@ -12,43 +12,15 @@ export default function BookDetail({ itemId, onClose }) {
 		async function fetchBookDetail() {
 			try {
 				setLoading(true);
-				const { data, error } = await supabase
-					.from('Buku')
-					.select(
-						`
-			id,
-			judul,
-			genre,
-			tahun_terbit,
-			jumlah_halaman,
-			deskripsi,
-			penerbit_id,
-			Penerbit (
-			  nama_penerbit
-			),
-			Buku_Penulis (
-			  Penulis (
-				nama_penulis
-			  )
-			)
-		  `
-					)
-					.eq('id', itemId)
-					.single();
+				setError(null);
 
-				if (error) throw error;
+				const response = await bookApi.getById(itemId);
 
-				// Transform data to include author names
-				const transformedBook = {
-					...data,
-					penerbit: data.Penerbit?.nama_penerbit || 'Tidak ada penerbit',
-					penulis:
-						data.Buku_Penulis?.map((bp) => bp.Penulis?.nama_penulis).filter(
-							Boolean
-						) || [],
-				};
-
-				setBook(transformedBook);
+				if (response.success) {
+					setBook(response.data);
+				} else {
+					throw new Error(response.error || 'Failed to fetch book details');
+				}
 			} catch (err) {
 				console.error('Error fetching book details:', err);
 				setError(err.message);
@@ -110,7 +82,7 @@ export default function BookDetail({ itemId, onClose }) {
 							</div>
 							<div className="rounded bg-slate-700 px-3 py-1">
 								<span className="text-gray-400">Halaman:</span>{' '}
-								{book.jumlah_halaman}
+								{book.jumlah_halaman || 'Tidak ada data'}
 							</div>
 						</div>
 
@@ -118,11 +90,11 @@ export default function BookDetail({ itemId, onClose }) {
 							<h3 className="mb-2 text-lg font-semibold text-gray-300">
 								Penulis
 							</h3>
-							{book.penulis.length > 0 ? (
+							{book.penulis && book.penulis.length > 0 ? (
 								<ul className="list-inside list-none space-y-2">
 									{book.penulis.map((author, index) => (
 										<li key={index} className="rounded bg-slate-700 px-3 py-1">
-											{author}
+											{author.nama_penulis}
 										</li>
 									))}
 								</ul>
@@ -135,7 +107,9 @@ export default function BookDetail({ itemId, onClose }) {
 							<h3 className="mb-2 text-lg font-semibold text-gray-300">
 								Penerbit
 							</h3>
-							<p className="rounded bg-slate-700 px-3 py-1">{book.penerbit}</p>
+							<p className="rounded bg-slate-700 px-3 py-1">
+								{book.penerbit || 'Tidak ada penerbit'}
+							</p>
 						</div>
 
 						<div>

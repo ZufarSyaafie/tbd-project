@@ -1,7 +1,6 @@
 'use client';
 import React, { useState, useEffect } from 'react';
 import RowUtils from '../molecules/RowUtils';
-import { supabase } from '@/lib/supabase';
 
 export default function TabelPenulis({
 	onRefresh,
@@ -16,38 +15,24 @@ export default function TabelPenulis({
 	const [authors, setAuthors] = useState([]);
 	const [loading, setLoading] = useState(true);
 	const [error, setError] = useState(null);
-	const [totalAuthors, setTotalAuthors] = useState(0);
 
-	// Fungsi untuk mengambil data penulis dari Supabase
+	// Fungsi untuk mengambil data penulis dari API
 	const fetchAuthors = async (page = currentPage, limit = itemsPerPage) => {
 		try {
 			setLoading(true);
-			const offset = (page - 1) * limit;
 
-			// Query untuk mendapatkan total count
-			const { count, error: countError } = await supabase
-				.from('Penulis')
-				.select('*', { count: 'exact', head: true });
+			const response = await fetch(`/api/authors?page=${page}&limit=${limit}`);
+			const result = await response.json();
 
-			if (countError) throw countError;
+			if (!result.success) {
+				throw new Error(result.error);
+			}
 
-			// Query untuk mendapatkan data dengan pagination
-			const { data, error } = await supabase
-				.from('Penulis')
-				.select('*')
-				.range(offset, offset + limit - 1)
-				.order('id', { ascending: true });
-
-			if (error) throw error;
-
-			setAuthors(data || []);
-			setTotalAuthors(count || 0);
+			setAuthors(result.data);
 
 			// Update parent component
-			if (onTotalItemsChange) onTotalItemsChange(count || 0);
-
-			const totalPages = Math.ceil((count || 0) / limit);
-			if (onTotalPagesChange) onTotalPagesChange(totalPages);
+			if (onTotalItemsChange) onTotalItemsChange(result.totalItems);
+			if (onTotalPagesChange) onTotalPagesChange(result.totalPages);
 
 			setLoading(false);
 		} catch (err) {
@@ -79,12 +64,15 @@ export default function TabelPenulis({
 	const handleDelete = async (authorId) => {
 		if (window.confirm('Apakah Anda yakin ingin menghapus penulis ini?')) {
 			try {
-				const { error } = await supabase
-					.from('Penulis')
-					.delete()
-					.eq('id', authorId);
+				const response = await fetch(`/api/authors/${authorId}`, {
+					method: 'DELETE',
+				});
 
-				if (error) throw error;
+				const result = await response.json();
+
+				if (!result.success) {
+					throw new Error(result.error);
+				}
 
 				fetchAuthors(currentPage, itemsPerPage);
 				alert('Penulis berhasil dihapus!');
@@ -108,7 +96,7 @@ export default function TabelPenulis({
 			<div className="w-full p-8 text-center">
 				<p className="text-[#FB64B6]">ERROR {error}</p>
 				<button
-					onClick={fetchAuthors}
+					onClick={() => fetchAuthors(currentPage, itemsPerPage)}
 					className="mt-2 rounded bg-[#FB64B6] px-4 py-2 text-white transition-colors duration-300 hover:bg-[#FF008A]"
 				>
 					Coba Lagi
@@ -122,7 +110,6 @@ export default function TabelPenulis({
 			<table className="w-full overflow-hidden rounded-md text-black shadow-lg">
 				<thead className="bg-[#00BCFF] font-semibold text-white">
 					<tr>
-						{/* <th className="px-4 py-3 text-left">ID</th> */}
 						<th className="px-4 py-3 text-left">NAMA PENULIS</th>
 						<th className="px-4 py-3 text-left">EMAIL</th>
 						<th className="px-4 py-3 text-left">AKSI</th>
@@ -131,14 +118,13 @@ export default function TabelPenulis({
 				<tbody className="bg-[#0f172a] text-[#ffffff]">
 					{authors.length === 0 ? (
 						<tr>
-							<td colSpan="4" className="px-4 py-8 text-center text-gray-400">
+							<td colSpan="3" className="px-4 py-8 text-center text-gray-400">
 								Tidak ada data penulis
 							</td>
 						</tr>
 					) : (
 						authors.map((author) => (
 							<tr key={author.id} className="border-t-2 border-[#334155]">
-								{/* <td className="px-4 py-3 font-medium">{author.id}</td> */}
 								<td className="px-4 py-3">{author.nama_penulis}</td>
 								<td className="px-4 py-3">{author.email || '-'}</td>
 								<td className="w-1.5 px-4 py-3">

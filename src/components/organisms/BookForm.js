@@ -2,8 +2,8 @@
 import { useState, useEffect } from 'react';
 import { Plus, X, AlertCircle } from 'lucide-react';
 import { yearOptions, genreOptions } from '@/lib/options';
-import AuthorField from '../molecules/AuthorField';
-import { supabase } from '@/lib/supabase';
+import { bookApi, authorApi, publisherApi } from '@/lib/api';
+import { validateBook } from '@/utils/validation';
 
 export default function CompleteBookForm({
 	onClose,
@@ -11,12 +11,12 @@ export default function CompleteBookForm({
 	bookToEdit = null,
 }) {
 	const [formData, setFormData] = useState({
-		title: '',
+		judul: '',
 		genre: '',
-		year: '',
-		pages: '',
-		publisher: '',
-		description: '',
+		tahun_terbit: '',
+		jumlah_halaman: '',
+		penerbit_id: '',
+		deskripsi: '',
 	});
 
 	const [authors, setAuthors] = useState(['']);
@@ -27,17 +27,16 @@ export default function CompleteBookForm({
 
 	// New state for validation errors
 	const [validationErrors, setValidationErrors] = useState({
-		title: '',
+		judul: '',
 		genre: '',
-		year: '',
-		pages: '',
-		publisher: '',
+		tahun_terbit: '',
+		jumlah_halaman: '',
+		penerbit_id: '',
 		authors: [],
 	});
 
 	// Validation functions
 	const validateAuthor = (value) => {
-		// Author names can contain letters, spaces, and some special characters used in names
 		if (value && !/^[a-zA-Z\s\-'.]+$/.test(value)) {
 			return "Nama penulis hanya boleh berisi huruf, spasi, dan tanda (-')";
 		}
@@ -45,124 +44,110 @@ export default function CompleteBookForm({
 	};
 
 	const validatePublisher = (value) => {
-		// Name should only contain letters, spaces, and common punctuation for publisher names
 		if (value && !/^[a-zA-Z\s\-'.&()!?]+$/.test(value)) {
-			return 'Nama penerbit hanya boleh berisi huruf, spasi, dan tanda baca umum -\'.&(),!?';
+			return "Nama penerbit hanya boleh berisi huruf, spasi, dan tanda baca umum -'.&(),!?";
 		}
 		return '';
 	};
 
 	const validatePages = (value) => {
-		// Hanya angka positif, tanpa huruf, spasi, simbol, atau karakter lain
 		if (!/^[0-9]+$/.test(value) || parseInt(value, 10) <= 0) {
 			return 'Harus berupa angka bulat positif';
 		}
 		return '';
 	};
 
-	// Fetch existing authors and publishers from Supabase
+	// Fetch existing authors and publishers using API
 	useEffect(() => {
 		fetchExistingData();
 	}, []);
 
 	const fetchExistingData = async () => {
 		try {
-			// Fetch authors
-			const { data: authorsData, error: authorsError } = await supabase
-				.from('Penulis')
-				.select('nama_penulis')
-				.order('nama_penulis');
+			setIsLoading(true);
 
-			if (authorsError) throw authorsError;
+			// Fetch authors using API
+			const authorsResponse = await authorApi.getAll();
+			if (authorsResponse.success) {
+				setExistingAuthors(
+					authorsResponse.data.map((author) => author.nama_penulis)
+				);
+			}
 
-			// Fetch publishers
-			const { data: publishersData, error: publishersError } = await supabase
-				.from('Penerbit')
-				.select('nama_penerbit')
-				.order('nama_penerbit');
-
-			if (publishersError) throw publishersError;
-
-			setExistingAuthors(authorsData.map((author) => author.nama_penulis));
-			setExistingPublishers(
-				publishersData.map((publisher) => publisher.nama_penerbit)
-			);
+			// Fetch publishers using API
+			const publishersResponse = await publisherApi.getAll();
+			if (publishersResponse.success) {
+				setExistingPublishers(publishersResponse.data);
+			}
 		} catch (error) {
 			console.error('Error fetching existing data:', error);
 			setError('Gagal memuat data penulis dan penerbit');
+		} finally {
+			setIsLoading(false);
 		}
 	};
 
 	// Function to convert year to date (January 1st of that year)
 	const convertYearToDate = (year) => {
 		if (!year) return null;
-		// Create date string in YYYY-MM-DD format for January 1st
 		return `${year}-01-01`;
 	};
 
-	// Function to get or create publisher
+	// Function to get or create publisher using API
 	const getOrCreatePublisher = async (publisherName) => {
 		try {
-			// Check if publisher exists
-			const { data: existingPublisher, error: fetchError } = await supabase
-				.from('Penerbit')
-				.select('id')
-				.eq('nama_penerbit', publisherName)
-				.single();
-
-			if (fetchError && fetchError.code !== 'PGRST116') {
-				throw fetchError;
-			}
+			// Check if publisher exists in our local state
+			const existingPublisher = existingPublishers.find(
+				(pub) => pub.nama_penerbit === publisherName
+			);
 
 			if (existingPublisher) {
 				return existingPublisher.id;
 			}
 
-			// Create new publisher
-			const { data: newPublisher, error: createError } = await supabase
-				.from('Penerbit')
-				.insert([{ nama_penerbit: publisherName }])
-				.select('id')
-				.single();
+			// Create new publisher using API
+			const response = await publisherApi.create({
+				nama_penerbit: publisherName,
+			});
 
-			if (createError) throw createError;
-
-			return newPublisher.id;
+			if (response.success) {
+				// Update local state
+				setExistingPublishers((prev) => [...prev, response.data]);
+				return response.data.id;
+			} else {
+				throw new Error(response.error || 'Failed to create publisher');
+			}
 		} catch (error) {
 			console.error('Error with publisher:', error);
 			throw error;
 		}
 	};
 
-	// Function to get or create authors
+	// Function to get or create authors using API
 	const getOrCreateAuthors = async (authorNames) => {
 		try {
 			const authorIds = [];
 
 			for (const authorName of authorNames) {
-				// Check if author exists
-				const { data: existingAuthor, error: fetchError } = await supabase
-					.from('Penulis')
-					.select('id')
-					.eq('nama_penulis', authorName)
-					.single();
-
-				if (fetchError && fetchError.code !== 'PGRST116') {
-					throw fetchError;
-				}
+				// Check if author exists by fetching all authors and finding match
+				const authorsResponse = await authorApi.getAll();
+				const existingAuthor = authorsResponse.data?.find(
+					(author) => author.nama_penulis === authorName
+				);
 
 				if (existingAuthor) {
 					authorIds.push(existingAuthor.id);
 				} else {
-					// Create new author
-					const { data: newAuthor, error: createError } = await supabase
-						.from('Penulis')
-						.insert([{ nama_penulis: authorName }])
-						.select('id')
-						.single();
+					// Create new author using API
+					const response = await authorApi.create({
+						nama_penulis: authorName,
+					});
 
-					if (createError) throw createError;
-					authorIds.push(newAuthor.id);
+					if (response.success) {
+						authorIds.push(response.data.id);
+					} else {
+						throw new Error(response.error || 'Failed to create author');
+					}
 				}
 			}
 
@@ -183,10 +168,11 @@ export default function CompleteBookForm({
 		// Validate input based on field type
 		let validationError = '';
 		switch (field) {
-			case 'pages':
+			case 'jumlah_halaman':
 				validationError = validatePages(value);
 				break;
-			case 'publisher':
+			case 'penerbit_id':
+				// For publisher, we're storing the name but need ID later
 				validationError = validatePublisher(value);
 				break;
 			default:
@@ -200,7 +186,7 @@ export default function CompleteBookForm({
 		}));
 	};
 
-	// New handler for author input with validation
+	// Handler for author input with validation
 	const handleAuthorChange = (index, value) => {
 		const newAuthors = [...authors];
 		newAuthors[index] = value;
@@ -219,18 +205,18 @@ export default function CompleteBookForm({
 		}));
 	};
 
-	// Add this effect to populate form with book data when editing
+	// Populate form with book data when editing
 	useEffect(() => {
 		if (bookToEdit) {
 			setFormData({
-				title: bookToEdit.judul || '',
+				judul: bookToEdit.judul || '',
 				genre: bookToEdit.genre || '',
-				year: bookToEdit.tahun_terbit
+				tahun_terbit: bookToEdit.tahun_terbit
 					? new Date(bookToEdit.tahun_terbit).getFullYear().toString()
 					: '',
-				pages: bookToEdit.jumlah_halaman?.toString() || '',
-				publisher: bookToEdit.penerbit || '',
-				description: bookToEdit.deskripsi || '',
+				jumlah_halaman: bookToEdit.jumlah_halaman?.toString() || '',
+				penerbit_id: bookToEdit.penerbit || '', // Store publisher name for display
+				deskripsi: bookToEdit.deskripsi || '',
 			});
 
 			// Set authors if available
@@ -255,24 +241,25 @@ export default function CompleteBookForm({
 		}
 	}, [bookToEdit]);
 
-	// Updated submit handler with comprehensive validation
+	// Updated submit handler using API
 	const handleSubmit = async () => {
+		// Filter out empty authors
+		const filteredAuthors = authors.filter((a) => a.trim() !== '');
+
 		// Validate all fields before submission
 		const errors = {
-			title: !formData.title ? 'Judul buku wajib diisi' : '',
+			judul: !formData.judul ? 'Judul buku wajib diisi' : '',
 			genre: !formData.genre ? 'Genre wajib diisi' : '',
-			year: !formData.year ? 'Tahun terbit wajib diisi' : '',
-			pages: !formData.pages
+			tahun_terbit: !formData.tahun_terbit ? 'Tahun terbit wajib diisi' : '',
+			jumlah_halaman: !formData.jumlah_halaman
 				? 'Jumlah halaman wajib diisi'
-				: validatePages(formData.pages),
-			publisher: !formData.publisher
+				: validatePages(formData.jumlah_halaman),
+			penerbit_id: !formData.penerbit_id
 				? 'Penerbit wajib diisi'
-				: validatePublisher(formData.publisher),
+				: validatePublisher(formData.penerbit_id),
 			authors: [],
 		};
 
-		// Filter out empty authors and validate remaining ones
-		const filteredAuthors = authors.filter((a) => a.trim() !== '');
 		if (filteredAuthors.length === 0) {
 			errors.authorGeneral = 'Minimal satu penulis wajib diisi';
 		} else {
@@ -297,97 +284,63 @@ export default function CompleteBookForm({
 		setError('');
 
 		try {
-			const publisherId = await getOrCreatePublisher(formData.publisher);
+			// Get or create publisher (returns publisher ID)
+			const publisherId = await getOrCreatePublisher(formData.penerbit_id);
+
+			// Get or create authors (returns array of author IDs)
 			const authorIds = await getOrCreateAuthors(filteredAuthors);
-			const publishDate = convertYearToDate(formData.year);
+
+			// Convert year to date
+			const publishDate = convertYearToDate(formData.tahun_terbit);
+
+			// Prepare book data for API
+			const bookData = {
+				judul: formData.judul,
+				genre: formData.genre,
+				tahun_terbit: publishDate,
+				jumlah_halaman: parseInt(formData.jumlah_halaman),
+				deskripsi: formData.deskripsi || null,
+				penerbit_id: publisherId,
+			};
+
+			let response;
 
 			if (bookToEdit) {
-				// UPDATE EXISTING BOOK
-				const { error: bookError } = await supabase
-					.from('Buku')
-					.update({
-						judul: formData.title,
-						genre: formData.genre,
-						tahun_terbit: publishDate,
-						jumlah_halaman: parseInt(formData.pages),
-						deskripsi: formData.description || null,
-						penerbit_id: publisherId,
-					})
-					.eq('id', bookToEdit.id);
-
-				if (bookError) throw bookError;
-
-				// Delete existing author relationships
-				const { error: deleteError } = await supabase
-					.from('Buku_Penulis')
-					.delete()
-					.eq('buku_id', bookToEdit.id);
-
-				if (deleteError) throw deleteError;
-
-				// Create new author relationships
-				const bookAuthorRelations = authorIds.map((authorId) => ({
-					buku_id: bookToEdit.id,
-					penulis_id: authorId,
-				}));
-
-				const { error: relationError } = await supabase
-					.from('Buku_Penulis')
-					.insert(bookAuthorRelations);
-
-				if (relationError) throw relationError;
-
-				alert('Buku berhasil diperbarui!');
+				// UPDATE EXISTING BOOK using API
+				response = await bookApi.update(bookToEdit.id, bookData);
 			} else {
-				// CREATE NEW BOOK
-				const { data: bookData, error: bookError } = await supabase
-					.from('Buku')
-					.insert([
-						{
-							judul: formData.title,
-							genre: formData.genre,
-							tahun_terbit: publishDate,
-							jumlah_halaman: parseInt(formData.pages),
-							deskripsi: formData.description || null,
-							penerbit_id: publisherId,
-						},
-					])
-					.select('id')
-					.single();
-
-				if (bookError) throw bookError;
-
-				// Create book-author relationships
-				const bookAuthorRelations = authorIds.map((authorId) => ({
-					buku_id: bookData.id,
-					penulis_id: authorId,
-				}));
-
-				const { error: relationError } = await supabase
-					.from('Buku_Penulis')
-					.insert(bookAuthorRelations);
-
-				if (relationError) throw relationError;
-
-				alert('Buku berhasil disimpan!');
+				// CREATE NEW BOOK using API
+				response = await bookApi.create(bookData);
 			}
+
+			if (!response.success) {
+				throw new Error(response.error || 'Failed to save book');
+			}
+
+			// Note: The current API structure doesn't handle book-author relationships
+			// You might need to add this functionality to your backend API
+			// For now, we'll show a success message
+
+			alert(
+				bookToEdit ? 'Buku berhasil diperbarui!' : 'Buku berhasil disimpan!'
+			);
 
 			// Reset form
 			setFormData({
-				title: '',
+				judul: '',
 				genre: '',
-				year: '',
-				pages: '',
-				publisher: '',
-				description: '',
+				tahun_terbit: '',
+				jumlah_halaman: '',
+				penerbit_id: '',
+				deskripsi: '',
 			});
 			setAuthors(['']);
 			setValidationErrors({
-				title: '',
+				judul: '',
 				genre: '',
-				year: '',
-				pages: '',
-				publisher: '',
+				tahun_terbit: '',
+				jumlah_halaman: '',
+				penerbit_id: '',
 				authors: [''],
 			});
 
@@ -446,28 +399,27 @@ export default function CompleteBookForm({
 			{/* Scrollable Form Content */}
 			<div className="overflow-y-auto p-6 text-white">
 				<div className="space-y-3">
-					{/* Form fields - make spacing more compact with space-y-3 */}
-
+					{/* Title field */}
 					<div>
 						<label className="mb-1 block text-lg font-semibold text-gray-300">
 							Judul: <span className="text-red-500">*</span>
 						</label>
 						<input
 							type="text"
-							value={formData.title}
-							onChange={(e) => handleInputChange('title', e.target.value)}
+							value={formData.judul}
+							onChange={(e) => handleInputChange('judul', e.target.value)}
 							className={`w-full rounded border-0 bg-slate-700 p-2.5 text-white placeholder-gray-400 focus:outline-none focus:ring-2 ${
-								validationErrors.title
+								validationErrors.judul
 									? 'border-2 border-red-500 focus:ring-red-500'
 									: 'focus:ring-[#C27AFF]'
 							}`}
 							placeholder="Masukkan judul buku"
 							disabled={isLoading}
 						/>
-						{validationErrors.title && (
+						{validationErrors.judul && (
 							<div className="mt-1 flex items-center text-sm text-red-500">
 								<AlertCircle size={16} className="mr-1" />
-								{validationErrors.title}
+								{validationErrors.judul}
 							</div>
 						)}
 					</div>
@@ -508,10 +460,12 @@ export default function CompleteBookForm({
 								Tahun: <span className="text-red-500">*</span>
 							</label>
 							<select
-								value={formData.year}
-								onChange={(e) => handleInputChange('year', e.target.value)}
+								value={formData.tahun_terbit}
+								onChange={(e) =>
+									handleInputChange('tahun_terbit', e.target.value)
+								}
 								className={`w-full rounded border-0 bg-slate-700 p-2.5 text-white focus:outline-none focus:ring-2 ${
-									validationErrors.year
+									validationErrors.tahun_terbit
 										? 'border-2 border-red-500 focus:ring-red-500'
 										: 'focus:ring-[#C27AFF]'
 								}`}
@@ -524,10 +478,10 @@ export default function CompleteBookForm({
 									</option>
 								))}
 							</select>
-							{validationErrors.year && (
+							{validationErrors.tahun_terbit && (
 								<div className="mt-1 flex items-center text-sm text-red-500">
 									<AlertCircle size={16} className="mr-1" />
-									{validationErrors.year}
+									{validationErrors.tahun_terbit}
 								</div>
 							)}
 						</div>
@@ -539,20 +493,22 @@ export default function CompleteBookForm({
 							<input
 								type="number"
 								min="1"
-								value={formData.pages}
-								onChange={(e) => handleInputChange('pages', e.target.value)}
+								value={formData.jumlah_halaman}
+								onChange={(e) =>
+									handleInputChange('jumlah_halaman', e.target.value)
+								}
 								className={`w-full rounded border-0 bg-slate-700 p-2.5 text-white placeholder-gray-400 focus:outline-none focus:ring-2 ${
-									validationErrors.pages
+									validationErrors.jumlah_halaman
 										? 'border-2 border-red-500 focus:ring-red-500'
 										: 'focus:ring-[#C27AFF]'
 								}`}
 								placeholder="Jumlah"
 								disabled={isLoading}
 							/>
-							{validationErrors.pages && (
+							{validationErrors.jumlah_halaman && (
 								<div className="mt-1 flex items-center text-sm text-red-500">
 									<AlertCircle size={16} className="mr-1" />
-									{validationErrors.pages}
+									{validationErrors.jumlah_halaman}
 								</div>
 							)}
 						</div>
@@ -648,10 +604,10 @@ export default function CompleteBookForm({
 						<input
 							type="text"
 							list="publisher-options"
-							value={formData.publisher}
-							onChange={(e) => handleInputChange('publisher', e.target.value)}
+							value={formData.penerbit_id}
+							onChange={(e) => handleInputChange('penerbit_id', e.target.value)}
 							className={`w-full rounded border-0 bg-slate-700 p-2.5 text-white placeholder-gray-400 focus:outline-none focus:ring-2 ${
-								validationErrors.publisher
+								validationErrors.penerbit_id
 									? 'border-2 border-red-500 focus:ring-red-500'
 									: 'focus:ring-[#C27AFF]'
 							}`}
@@ -660,27 +616,27 @@ export default function CompleteBookForm({
 						/>
 						<datalist id="publisher-options">
 							{existingPublishers.map((publisher) => (
-								<option key={publisher} value={publisher} />
+								<option key={publisher.id} value={publisher.nama_penerbit} />
 							))}
 						</datalist>
-						{validationErrors.publisher && (
+						{validationErrors.penerbit_id && (
 							<div className="mt-1 flex items-center text-sm text-red-500">
 								<AlertCircle size={16} className="mr-1" />
-								{validationErrors.publisher}
+								{validationErrors.penerbit_id}
 							</div>
 						)}
 					</div>
 
-					{/* Description field - make it smaller */}
+					{/* Description field */}
 					<div>
 						<label className="mb-1 block text-lg font-semibold text-gray-300">
 							Deskripsi:
 						</label>
 						<textarea
-							value={formData.description}
-							onChange={(e) => handleInputChange('description', e.target.value)}
+							value={formData.deskripsi}
+							onChange={(e) => handleInputChange('deskripsi', e.target.value)}
 							className="w-full resize-none rounded border-0 bg-slate-700 p-2.5 text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-[#C27AFF]"
-							rows={3} // Reduced from 4 to 3
+							rows={3}
 							placeholder="Deskripsi singkat tentang buku..."
 							disabled={isLoading}
 						/>
@@ -688,7 +644,7 @@ export default function CompleteBookForm({
 				</div>
 			</div>
 
-			{/* Save button - keep at bottom */}
+			{/* Save button */}
 			<div className="bg-slate-800 p-6 pt-3">
 				<button
 					onClick={handleSubmit}

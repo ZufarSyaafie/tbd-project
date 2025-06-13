@@ -1,7 +1,7 @@
 'use client';
 import { X } from 'lucide-react';
 import { useState, useEffect } from 'react';
-import { supabase } from '@/lib/supabase';
+import { authorApi } from '@/lib/api';
 
 export default function DetailPenulis({ authorId, onClose }) {
 	const [author, setAuthor] = useState(null);
@@ -12,14 +12,15 @@ export default function DetailPenulis({ authorId, onClose }) {
 		async function fetchAuthorDetail() {
 			try {
 				setLoading(true);
-				const { data, error } = await supabase
-					.from('Penulis')
-					.select('*')
-					.eq('id', authorId)
-					.single();
+				setError(null);
 
-				if (error) throw error;
-				setAuthor(data);
+				const response = await authorApi.getById(authorId);
+
+				if (response.success) {
+					setAuthor(response.data);
+				} else {
+					throw new Error(response.error || 'Failed to fetch author details');
+				}
 			} catch (err) {
 				console.error('Error fetching author details:', err);
 				setError(err.message);
@@ -28,7 +29,9 @@ export default function DetailPenulis({ authorId, onClose }) {
 			}
 		}
 
-		if (authorId) fetchAuthorDetail();
+		if (authorId) {
+			fetchAuthorDetail();
+		}
 	}, [authorId]);
 
 	return (
@@ -66,7 +69,13 @@ export default function DetailPenulis({ authorId, onClose }) {
 								<h3 className="mb-2 text-lg font-semibold text-gray-300">
 									Email
 								</h3>
-								<p className={author.email ? "rounded bg-slate-700 px-3 py-1" : "text-gray-400"}>
+								<p
+									className={
+										author.email
+											? 'rounded bg-slate-700 px-3 py-1'
+											: 'text-gray-400'
+									}
+								>
 									{author.email || 'Tidak ada email'}
 								</p>
 							</div>

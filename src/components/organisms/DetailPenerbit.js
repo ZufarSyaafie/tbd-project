@@ -1,7 +1,7 @@
 'use client';
 import { X } from 'lucide-react';
 import { useState, useEffect } from 'react';
-import { supabase } from '@/lib/supabase';
+import { publisherApi } from '@/lib/api';
 
 export default function DetailPenerbit({ publisherId, onClose }) {
 	const [publisher, setPublisher] = useState(null);
@@ -12,14 +12,17 @@ export default function DetailPenerbit({ publisherId, onClose }) {
 		async function fetchPublisherDetail() {
 			try {
 				setLoading(true);
-				const { data, error } = await supabase
-					.from('Penerbit')
-					.select('*')
-					.eq('id', publisherId)
-					.single();
+				setError(null);
 
-				if (error) throw error;
-				setPublisher(data);
+				const response = await publisherApi.getById(publisherId);
+
+				if (response.success) {
+					setPublisher(response.data);
+				} else {
+					throw new Error(
+						response.error || 'Failed to fetch publisher details'
+					);
+				}
 			} catch (err) {
 				console.error('Error fetching publisher details:', err);
 				setError(err.message);
@@ -28,7 +31,9 @@ export default function DetailPenerbit({ publisherId, onClose }) {
 			}
 		}
 
-		if (publisherId) fetchPublisherDetail();
+		if (publisherId) {
+			fetchPublisherDetail();
+		}
 	}, [publisherId]);
 
 	return (
@@ -66,7 +71,13 @@ export default function DetailPenerbit({ publisherId, onClose }) {
 								<h3 className="mb-2 text-lg font-semibold text-gray-300">
 									No. Telepon
 								</h3>
-								<p className={publisher.no_telpon ? "rounded bg-slate-700 px-3 py-1" : "text-gray-400"}>
+								<p
+									className={
+										publisher.no_telpon
+											? 'rounded bg-slate-700 px-3 py-1'
+											: 'text-gray-400'
+									}
+								>
 									{publisher.no_telpon || 'Tidak ada nomor telepon'}
 								</p>
 							</div>
@@ -76,7 +87,13 @@ export default function DetailPenerbit({ publisherId, onClose }) {
 							<h3 className="mb-2 text-lg font-semibold text-gray-300">
 								Alamat
 							</h3>
-							<p className={publisher.alamat_penerbit ? "rounded bg-slate-700 px-3 py-1" : "text-gray-400"}>
+							<p
+								className={
+									publisher.alamat_penerbit
+										? 'rounded bg-slate-700 px-3 py-1'
+										: 'text-gray-400'
+								}
+							>
 								{publisher.alamat_penerbit || 'Tidak ada alamat'}
 							</p>
 						</div>
