@@ -24,54 +24,60 @@ export default function Table({
 	const getSuggestions = async (type, query) => {
 		try {
 			let suggestions = [];
-			
+
 			switch (type) {
 				case 'penulis':
+					// Using the view to get unique authors
 					const { data: penulisData, error: penulisError } = await supabase
-						.from('Penulis')
-						.select('nama_penulis')
-						.ilike('nama_penulis', `%${query}%`)
-						.limit(10);
-					
+						.from('buku_detail_view')
+						.select('penulis')
+						.not('penulis', 'is', null);
+
 					if (penulisError) throw penulisError;
-					suggestions = penulisData?.map(p => p.nama_penulis) || [];
+
+					// Extract unique authors and filter by query
+					const allAuthors =
+						penulisData?.flatMap((book) => book.penulis || []) || [];
+					const uniqueAuthors = [...new Set(allAuthors)]
+						.filter((author) =>
+							author.toLowerCase().includes(query.toLowerCase())
+						)
+						.slice(0, 10);
+
+					suggestions = uniqueAuthors;
 					break;
 
 				case 'penerbit':
 					const { data: penerbitData, error: penerbitError } = await supabase
-						.from('Penerbit')
+						.from('buku_detail_view')
 						.select('nama_penerbit')
 						.ilike('nama_penerbit', `%${query}%`)
 						.limit(10);
-					
+
 					if (penerbitError) throw penerbitError;
-					suggestions = penerbitData?.map(p => p.nama_penerbit) || [];
+					suggestions = [
+						...new Set(penerbitData?.map((p) => p.nama_penerbit) || []),
+					];
 					break;
 
 				case 'tahun':
-					// For year, we'll get distinct years from books
+					// Get distinct years from view
 					const { data: tahunData, error: tahunError } = await supabase
-						.from('Buku')
-						.select('tahun_terbit')
-						.not('tahun_terbit', 'is', null)
-						.limit(100);
-					
+						.from('buku_detail_view')
+						.select('tahun')
+						.not('tahun', 'is', null)
+						.order('tahun', { ascending: false });
+
 					if (tahunError) throw tahunError;
-					
-					// Extract years and filter by query
-					const years = tahunData
-						?.map(book => {
-							if (book.tahun_terbit) {
-								return new Date(book.tahun_terbit).getFullYear().toString();
-							}
-							return null;
-						})
-						.filter(year => year && year.includes(query))
-						.filter((year, index, self) => self.indexOf(year) === index) // Remove duplicates
-						.sort((a, b) => b - a) // Sort descending
+
+					// Filter years by query and remove duplicates
+					const years = [
+						...new Set(tahunData?.map((book) => book.tahun.toString()) || []),
+					]
+						.filter((year) => year.includes(query))
 						.slice(0, 10);
-					
-					suggestions = years || [];
+
+					suggestions = years;
 					break;
 
 				default:
@@ -92,164 +98,73 @@ export default function Table({
 		}
 	}, [onGetSuggestions]);
 
-	// Build query with filters
+	// Build query with filters using the view
 	const buildQuery = (page = currentPage, limit = itemsPerPage) => {
 		const offset = (page - 1) * limit;
 
 		let query = supabase
-			.from('Buku')
-			.select(
-				`
-				id,
-				judul,
-				genre,
-				tahun_terbit,
-				jumlah_halaman,
-				deskripsi,
-				penerbit_id,
-				Penerbit!inner (
-					id,
-					nama_penerbit
-				),
-				Buku_Penulis (
-					Penulis (
-						nama_penulis
-					)
-				)
-				`,
-				{ count: 'exact' }
-			);
+			.from('buku_detail_view')
+			.select('*', { count: 'exact' });
 
 		// Apply filters
 		if (filters.penerbit) {
-			query = query.eq('Penerbit.nama_penerbit', filters.penerbit);
+			query = query.eq('nama_penerbit', filters.penerbit);
 		}
 
 		if (filters.tahun) {
-			// Filter by year - need to extract year from date
-			const startDate = `${filters.tahun}-01-01`;
-			const endDate = `${filters.tahun}-12-31`;
-			query = query.gte('tahun_terbit', startDate).lte('tahun_terbit', endDate);
+			query = query.eq('tahun', parseInt(filters.tahun));
 		}
 
-		// For author filter, we need a different approach since it's in a related table
-		return query.range(offset, offset + limit - 1).order('id', { ascending: true });
+		if (filters.penulis) {
+			// For author filter, we need to check if the author exists in the array
+			query = query.contains('penulis', [filters.penulis]);
+		}
+
+		return query
+			.range(offset, offset + limit - 1)
+			.order('buku_id', { ascending: true });
 	};
 
-	// Fungsi untuk mengambil data dari Supabase dengan filter
+	// Fungsi untuk mengambil data dari view dengan filter
 	const fetchBooks = async (page = currentPage, limit = itemsPerPage) => {
 		try {
 			setLoading(true);
 
-			let books = [];
-			let count = 0;
-
-			// If filtering by author, we need a special query
-			if (filters.penulis) {
-				// First, get book IDs that have the specified author
-				const { data: bookPenulisData, error: bookPenulisError } = await supabase
-					.from('Buku_Penulis')
-					.select(`
-						buku_id,
-						Penulis!inner (
-							nama_penulis
-						)
-					`)
-					.eq('Penulis.nama_penulis', filters.penulis);
-
-				if (bookPenulisError) throw bookPenulisError;
-
-				const bookIds = bookPenulisData?.map(bp => bp.buku_id) || [];
-
-				if (bookIds.length === 0) {
-					// No books found for this author
-					setBooks([]);
-					setTotalBooks(0);
-					if (onTotalItemsChange) onTotalItemsChange(0);
-					if (onTotalPagesChange) onTotalPagesChange(0);
-					setLoading(false);
-					return;
-				}
-
-				// Now get the books with other filters applied
-				const offset = (page - 1) * limit;
-				
-				let bookQuery = supabase
-					.from('Buku')
-					.select(
-						`
-						id,
-						judul,
-						genre,
-						tahun_terbit,
-						jumlah_halaman,
-						deskripsi,
-						penerbit_id,
-						Penerbit!inner (
-							id,
-							nama_penerbit
-						),
-						Buku_Penulis (
-							Penulis (
-								nama_penulis
-							)
-						)
-						`,
-						{ count: 'exact' }
-					)
-					.in('id', bookIds);
-
-				// Apply other filters
-				if (filters.penerbit) {
-					bookQuery = bookQuery.eq('Penerbit.nama_penerbit', filters.penerbit);
-				}
-
-				if (filters.tahun) {
-					const startDate = `${filters.tahun}-01-01`;
-					const endDate = `${filters.tahun}-12-31`;
-					bookQuery = bookQuery.gte('tahun_terbit', startDate).lte('tahun_terbit', endDate);
-				}
-
-				const { data, error, count: totalCount } = await bookQuery
-					.range(offset, offset + limit - 1)
-					.order('id', { ascending: true });
-
-				if (error) throw error;
-				books = data || [];
-				count = totalCount || 0;
-
-			} else {
-				// No author filter, use regular query
-				const { data, error, count: totalCount } = await buildQuery(page, limit);
-
-				if (error) throw error;
-				books = data || [];
-				count = totalCount || 0;
-			}
-
-			console.log('Raw data from Supabase:', books);
 			console.log('Applied filters:', filters);
 
-			// Transform data
-			const transformedData = books.map((book) => {
+			// Use the view query
+			const { data, error, count: totalCount } = await buildQuery(page, limit);
+
+			if (error) throw error;
+
+			console.log('Raw data from view:', data);
+
+			// Transform data to match the original structure
+			const transformedData = (data || []).map((book) => {
 				return {
-					...book,
-					penerbit: book.Penerbit?.nama_penerbit || 'Tidak ada penerbit',
-					penulis: book.Buku_Penulis?.map((bp) => bp.Penulis) || [],
+					id: book.buku_id,
+					judul: book.judul,
+					genre: book.genre,
+					tahun_terbit: book.tahun_terbit,
+					jumlah_halaman: book.jumlah_halaman,
+					deskripsi: book.deskripsi,
+					penerbit_id: book.penerbit_id,
+					penerbit: book.nama_penerbit,
+					penulis: book.penulis?.map((nama) => ({ nama_penulis: nama })) || [],
 				};
 			});
 
 			console.log('Transformed data:', transformedData);
 
 			setBooks(transformedData);
-			setTotalBooks(count);
+			setTotalBooks(totalCount || 0);
 
 			// Update parent component
 			if (onTotalItemsChange) {
-				onTotalItemsChange(count);
+				onTotalItemsChange(totalCount || 0);
 			}
 
-			const totalPages = Math.ceil(count / limit);
+			const totalPages = Math.ceil((totalCount || 0) / limit);
 			if (onTotalPagesChange) {
 				onTotalPagesChange(totalPages);
 			}
@@ -293,7 +208,7 @@ export default function Table({
 	const handleDelete = async (itemId) => {
 		if (window.confirm('Apakah Anda yakin ingin menghapus buku ini?')) {
 			try {
-				// Delete dari Supabase
+				// Delete dari tabel asli (bukan view)
 				const { error } = await supabase.from('Buku').delete().eq('id', itemId);
 
 				if (error) throw error;
@@ -356,16 +271,15 @@ export default function Table({
 			{Object.keys(filters).length > 0 && (
 				<div className="mb-2 flex flex-wrap gap-2">
 					{Object.entries(filters).map(([key, value]) => (
-					<span
-						key={key}
-						className="bg-slate-700 text-gray-400 text-xs px-2 py-0.5 rounded-full"
-					>
-						{value}
-					</span>
+						<span
+							key={key}
+							className="rounded-full bg-slate-700 px-2 py-0.5 text-xs text-gray-400"
+						>
+							{value}
+						</span>
 					))}
 				</div>
 			)}
-
 
 			<table className="w-full overflow-hidden rounded-md text-black shadow-lg">
 				<thead className="bg-[#00BCFF] font-semibold text-white">
@@ -382,10 +296,9 @@ export default function Table({
 					{books.length === 0 ? (
 						<tr>
 							<td colSpan="6" className="px-4 py-8 text-center text-gray-400">
-								{Object.keys(filters).length > 0 
+								{Object.keys(filters).length > 0
 									? 'Tidak ada data buku yang sesuai dengan filter'
-									: 'Tidak ada data buku'
-								}
+									: 'Tidak ada data buku'}
 							</td>
 						</tr>
 					) : (
