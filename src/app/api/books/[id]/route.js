@@ -3,6 +3,9 @@ import { NextResponse } from 'next/server';
 
 export async function GET(request, { params }) {
 	try {
+		// Await params before accessing its properties
+		const { id } = await params;
+
 		const { data, error } = await supabase
 			.from('Buku')
 			.select(
@@ -14,7 +17,7 @@ export async function GET(request, { params }) {
         )
       `
 			)
-			.eq('id', params.id)
+			.eq('id', id)
 			.single();
 
 		if (error) throw error;
@@ -50,12 +53,14 @@ export async function GET(request, { params }) {
 
 export async function PUT(request, { params }) {
 	try {
+		// Await params before accessing its properties
+		const { id } = await params;
 		const body = await request.json();
 
 		const { data, error } = await supabase
 			.from('Buku')
 			.update(body)
-			.eq('id', params.id)
+			.eq('id', id)
 			.select()
 			.single();
 
@@ -77,7 +82,10 @@ export async function PUT(request, { params }) {
 
 export async function DELETE(request, { params }) {
 	try {
-		const { error } = await supabase.from('Buku').delete().eq('id', params.id);
+		// Await params before accessing its properties
+		const { id } = await params;
+
+		const { error } = await supabase.from('Buku').delete().eq('id', id);
 
 		if (error) throw error;
 
