@@ -12,47 +12,44 @@ export async function GET(request) {
 		switch (type) {
 			case 'penulis':
 				const { data: penulisData, error: penulisError } = await supabase
-					.from('buku_detail_view')
-					.select('penulis')
-					.not('penulis', 'is', null);
+					.from('Penulis')
+					.select('nama_penulis')
+					.ilike('nama_penulis', `%${query}%`)
+					.limit(10);
 
 				if (penulisError) throw penulisError;
 
-				const allAuthors =
-					penulisData?.flatMap((book) => book.penulis || []) || [];
-				const uniqueAuthors = [...new Set(allAuthors)]
-					.filter((author) =>
-						author.toLowerCase().includes(query.toLowerCase())
-					)
-					.slice(0, 10);
-
-				suggestions = uniqueAuthors;
+				suggestions = penulisData?.map((p) => p.nama_penulis) || [];
 				break;
 
 			case 'penerbit':
 				const { data: penerbitData, error: penerbitError } = await supabase
-					.from('buku_detail_view')
+					.from('Penerbit')
 					.select('nama_penerbit')
 					.ilike('nama_penerbit', `%${query}%`)
 					.limit(10);
 
 				if (penerbitError) throw penerbitError;
-				suggestions = [
-					...new Set(penerbitData?.map((p) => p.nama_penerbit) || []),
-				];
+				suggestions = penerbitData?.map((p) => p.nama_penerbit) || [];
 				break;
 
 			case 'tahun':
 				const { data: tahunData, error: tahunError } = await supabase
-					.from('buku_detail_view')
-					.select('tahun')
-					.not('tahun', 'is', null)
-					.order('tahun', { ascending: false });
+					.from('Buku')
+					.select('tahun_terbit')
+					.not('tahun_terbit', 'is', null)
+					.order('tahun_terbit', { ascending: false });
 
 				if (tahunError) throw tahunError;
 
+				// Extract unique years from dates
 				const years = [
-					...new Set(tahunData?.map((book) => book.tahun.toString()) || []),
+					...new Set(
+						tahunData?.map((book) => {
+							const date = new Date(book.tahun_terbit);
+							return date.getFullYear().toString();
+						}) || []
+					),
 				]
 					.filter((year) => year.includes(query))
 					.slice(0, 10);

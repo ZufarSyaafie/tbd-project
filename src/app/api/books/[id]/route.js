@@ -4,24 +4,35 @@ import { NextResponse } from 'next/server';
 export async function GET(request, { params }) {
 	try {
 		const { data, error } = await supabase
-			.from('buku_detail_view')
-			.select('*')
-			.eq('buku_id', params.id)
+			.from('Buku')
+			.select(
+				`
+        *,
+        Penerbit:penerbit_id(id, nama_penerbit, alamat_penerbit, no_telpon),
+        Buku_Penulis(
+          Penulis:penulis_id(id, nama_penulis, email)
+        )
+      `
+			)
+			.eq('id', params.id)
 			.single();
 
 		if (error) throw error;
 
-		// Transform data
+		// Transform data to match the expected format
 		const transformedData = {
-			id: data.buku_id,
+			id: data.id,
 			judul: data.judul,
 			genre: data.genre,
 			tahun_terbit: data.tahun_terbit,
 			jumlah_halaman: data.jumlah_halaman,
 			deskripsi: data.deskripsi,
 			penerbit_id: data.penerbit_id,
-			penerbit: data.nama_penerbit,
-			penulis: data.penulis?.map((nama) => ({ nama_penulis: nama })) || [],
+			penerbit: data.Penerbit?.nama_penerbit || '',
+			penulis:
+				data.Buku_Penulis?.map((bp) => ({
+					nama_penulis: bp.Penulis?.nama_penulis || '',
+				})) || [],
 		};
 
 		return NextResponse.json({

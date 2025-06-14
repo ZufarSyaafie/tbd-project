@@ -12,19 +12,30 @@ export async function GET(request) {
 
 		const offset = (page - 1) * limit;
 
-		let query = supabase
-			.from('buku_detail_view')
-			.select('*', { count: 'exact' });
+		// Build the base query with joins
+		let query = supabase.from('Buku').select(
+			`
+        *,
+        Penerbit:penerbit_id(id, nama_penerbit, alamat_penerbit, no_telpon),
+        Buku_Penulis(
+          Penulis:penulis_id(id, nama_penulis, email)
+        )
+      `,
+			{ count: 'exact' }
+		);
 
 		// Apply filters
 		if (penerbit) {
-			query = query.eq('nama_penerbit', penerbit);
+			query = query.eq('Penerbit.nama_penerbit', penerbit);
 		}
 		if (tahun) {
-			query = query.eq('tahun', parseInt(tahun));
+			// Extract year from date field
+			const startDate = `${tahun}-01-01`;
+			const endDate = `${tahun}-12-31`;
+			query = query.gte('tahun_terbit', startDate).lte('tahun_terbit', endDate);
 		}
 		if (penulis) {
-			query = query.contains('penulis', [penulis]);
+			query = query.eq('Buku_Penulis.Penulis.nama_penulis', penulis);
 		}
 
 		const {
@@ -33,21 +44,24 @@ export async function GET(request) {
 			count: totalCount,
 		} = await query
 			.range(offset, offset + limit - 1)
-			.order('buku_id', { ascending: true });
+			.order('id', { ascending: true });
 
 		if (error) throw error;
 
-		// Transform data
+		// Transform data to match the expected format
 		const transformedData = (data || []).map((book) => ({
-			id: book.buku_id,
+			id: book.id,
 			judul: book.judul,
 			genre: book.genre,
 			tahun_terbit: book.tahun_terbit,
 			jumlah_halaman: book.jumlah_halaman,
 			deskripsi: book.deskripsi,
 			penerbit_id: book.penerbit_id,
-			penerbit: book.nama_penerbit,
-			penulis: book.penulis?.map((nama) => ({ nama_penulis: nama })) || [],
+			penerbit: book.Penerbit?.nama_penerbit || '',
+			penulis:
+				book.Buku_Penulis?.map((bp) => ({
+					nama_penulis: bp.Penulis?.nama_penulis || '',
+				})) || [],
 		}));
 
 		return NextResponse.json({
