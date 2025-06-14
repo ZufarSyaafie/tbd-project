@@ -158,6 +158,63 @@ export default function CompleteBookForm({
 		}
 	};
 
+	// Function to create book-author relationships
+	const createBookAuthorRelationships = async (bookId, authorIds) => {
+		try {
+			const response = await fetch('/api/book-authors', {
+				method: 'POST',
+				headers: {
+					'Content-Type': 'application/json',
+				},
+				body: JSON.stringify({
+					bookId: bookId,
+					authorIds: authorIds,
+				}),
+			});
+
+			const result = await response.json();
+
+			if (!result.success) {
+				throw new Error(
+					result.error || 'Failed to create book-author relationships'
+				);
+			}
+
+			return result;
+		} catch (error) {
+			console.error('Error creating book-author relationships:', error);
+			throw error;
+		}
+	};
+
+	// Function to update book-author relationships
+	const updateBookAuthorRelationships = async (bookId, authorIds) => {
+		try {
+			const response = await fetch(`/api/books/${bookId}/authors`, {
+				method: 'PUT',
+				headers: {
+					'Content-Type': 'application/json',
+				},
+				body: JSON.stringify({
+					authorIds: authorIds,
+				}),
+			});
+
+			const result = await response.json();
+
+			if (!result.success) {
+				throw new Error(
+					result.error || 'Failed to update book-author relationships'
+				);
+			}
+
+			return result;
+		} catch (error) {
+			console.error('Error updating book-author relationships:', error);
+			throw error;
+		}
+	};
+
 	// Updated handleInputChange with validation
 	const handleInputChange = (field, value) => {
 		setFormData((prev) => ({
@@ -304,22 +361,30 @@ export default function CompleteBookForm({
 			};
 
 			let response;
+			let bookId;
 
 			if (bookToEdit) {
 				// UPDATE EXISTING BOOK using API
 				response = await bookApi.update(bookToEdit.id, bookData);
+				bookId = bookToEdit.id;
 			} else {
 				// CREATE NEW BOOK using API
 				response = await bookApi.create(bookData);
+				bookId = response.data.id;
 			}
 
 			if (!response.success) {
 				throw new Error(response.error || 'Failed to save book');
 			}
 
-			// Note: The current API structure doesn't handle book-author relationships
-			// You might need to add this functionality to your backend API
-			// For now, we'll show a success message
+			// Handle book-author relationships
+			if (bookToEdit) {
+				// Update existing book-author relationships
+				await updateBookAuthorRelationships(bookId, authorIds);
+			} else {
+				// Create new book-author relationships
+				await createBookAuthorRelationships(bookId, authorIds);
+			}
 
 			alert(
 				bookToEdit ? 'Buku berhasil diperbarui!' : 'Buku berhasil disimpan!'

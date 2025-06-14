@@ -1,22 +1,30 @@
 import { supabase } from '@/lib/supabase';
 import { NextResponse } from 'next/server';
 
+// Get all authors for a specific book
 export async function GET(request, { params }) {
 	try {
 		const { data, error } = await supabase
-			.from('Penulis')
-			.select('*')
-			.eq('id', params.id)
-			.single();
+			.from('Buku_Penulis')
+			.select(
+				`
+        penulis_id,
+        Penulis (
+          id,
+          nama_penulis
+        )
+      `
+			)
+			.eq('buku_id', params.id);
 
 		if (error) throw error;
 
 		return NextResponse.json({
 			success: true,
-			data,
+			data: data || [],
 		});
 	} catch (error) {
-		console.error('Error fetching author:', error);
+		console.error('Error fetching book authors:', error);
 		return NextResponse.json(
 			{ success: false, error: error.message },
 			{ status: 500 }
@@ -24,48 +32,40 @@ export async function GET(request, { params }) {
 	}
 }
 
+// Update authors for a specific book
 export async function PUT(request, { params }) {
 	try {
-		const body = await request.json();
+		const { authorIds } = await request.json();
+		const bookId = params.id;
 
-		const { data, error } = await supabase
-			.from('Penulis')
-			.update(body)
-			.eq('id', params.id)
-			.select()
-			.single();
-
-		if (error) throw error;
-
-		return NextResponse.json({
-			success: true,
-			data,
-			message: 'Author updated successfully',
-		});
-	} catch (error) {
-		console.error('Error updating author:', error);
-		return NextResponse.json(
-			{ success: false, error: error.message },
-			{ status: 500 }
-		);
-	}
-}
-
-export async function DELETE(request, { params }) {
-	try {
-		const { error } = await supabase
-			.from('Penulis')
+		// Start a transaction by deleting existing relationships
+		const { error: deleteError } = await supabase
+			.from('Buku_Penulis')
 			.delete()
-			.eq('id', params.id);
+			.eq('buku_id', bookId);
 
-		if (error) throw error;
+		if (deleteError) throw deleteError;
+
+		// Insert new relationships if there are authors
+		if (authorIds && authorIds.length > 0) {
+			const relationships = authorIds.map((authorId) => ({
+				buku_id: parseInt(bookId),
+				penulis_id: parseInt(authorId),
+			}));
+
+			const { error: insertError } = await supabase
+				.from('Buku_Penulis')
+				.insert(relationships);
+
+			if (insertError) throw insertError;
+		}
 
 		return NextResponse.json({
 			success: true,
-			message: 'Author deleted successfully',
+			message: 'Book authors updated successfully',
 		});
 	} catch (error) {
-		console.error('Error deleting author:', error);
+		console.error('Error updating book authors:', error);
 		return NextResponse.json(
 			{ success: false, error: error.message },
 			{ status: 500 }
