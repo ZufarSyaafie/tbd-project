@@ -44,9 +44,28 @@ export async function POST(request) {
 	try {
 		const body = await request.json();
 
+		// Validate required fields
+		if (!body.nama_penulis || body.nama_penulis.trim() === '') {
+			return NextResponse.json(
+				{ success: false, error: 'Nama penulis wajib diisi' },
+				{ status: 400 }
+			);
+		}
+
+		// Validate email format if provided
+		if (body.email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(body.email)) {
+			return NextResponse.json(
+				{ success: false, error: 'Format email tidak valid' },
+				{ status: 400 }
+			);
+		}
+
 		const { data, error } = await supabase
 			.from('Penulis')
-			.insert([body])
+			.insert([{
+				nama_penulis: body.nama_penulis.trim(),
+				email: body.email ? body.email.trim() : null
+			}])
 			.select()
 			.single();
 

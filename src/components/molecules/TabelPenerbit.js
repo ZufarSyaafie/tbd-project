@@ -131,7 +131,7 @@ export default function TabelPenerbit({
 						publishers.map((publisher) => (
 							<tr key={publisher.id} className="border-t-2 border-[#334155]">
 								<td className="px-4 py-3">{publisher.nama_penerbit}</td>
-								<td className="px-4 py-3">
+								<td className="w-4xl px-4 py-3">
 									{publisher.alamat_penerbit || '-'}
 								</td>
 								<td className="px-4 py-3">{publisher.no_telpon || '-'}</td>

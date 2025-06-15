@@ -14,12 +14,13 @@ export default function DetailPenulis({ authorId, onClose }) {
 				setLoading(true);
 				setError(null);
 
-				const response = await authorApi.getById(authorId);
+				const response = await fetch(`/api/authors/${authorId}`);
+				const result = await response.json();
 
-				if (response.success) {
-					setAuthor(response.data);
+				if (result.success) {
+					setAuthor(result.data);
 				} else {
-					throw new Error(response.error || 'Failed to fetch author details');
+					throw new Error(result.error || 'Failed to fetch author details');
 				}
 			} catch (err) {
 				console.error('Error fetching author details:', err);
